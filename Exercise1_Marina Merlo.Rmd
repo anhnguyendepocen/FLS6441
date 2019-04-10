@@ -1,0 +1,185 @@
+---
+title: "Replication Exercise 1 - Field Experiments"
+author: "Marina Merlo - n. USP: 7197987"
+date: "April 10th, 2019"
+output: pdf_document
+---
+
+```{r, echo=FALSE, warning=F, message=F}
+library(tidyverse)
+library(knitr)
+library(data.table)
+library(effects)
+library(MASS)
+library(Zelig)
+library(ZeligChoice)
+library(estimatr)
+library(stargazer)
+library(pander)
+library(texreg)
+data <- fread("GGL_data_prepared.csv")
+```
+
+### Question 1 - What hypotheses are GGL testing? Where did they get these hypotheses from?
+
+They're testing whether social pressure increases one's propensity to vote, getting this hypothesis from the social psychology and voting behavior literature. They test different levels of social enforcement on voting, from the single reminder of the civic duty of voting up to a higher pressure closer to the "shaming tatics".
+
+### Question 2 - What are the treatment and control conditions? What is the outcome variable?
+
+The treatment conditions is to receive a mail before the election with incentives to vote; the control was to receive nothing. The outcome variable was the voting rate.
+
+### Question 3 - What is the unit of analysis? What is the level at which treatment is applied?
+
+The unit of analysis is each individual, but the treatment is applied per household.
+
+### Question 4 - Did randomization work? Let’s reproduce Table 1 of GGL to conduct balance tests betweenthe treatment and control groups on pre-treatment covariates. Note that GGL evaluate bal-ance at thehouseholdlevel so you first need to aggregate the individual data to the householdlevel by finding the household mean on each of the variables we want to assess balance for.Then calculate the mean across household sepatealy for the control and treatment groups.What do we learn from the results?
+
+```{r,warning=F, message=F,echo=F}
+fread("GGL_data_prepared.csv") %>%
+  group_by(hh_id,treatment) %>%
+  summarise_all(funs(mean))%>%
+  group_by(treatment) %>%
+  mutate(n=n())%>%
+  summarise_all(funs(mean))%>%
+  dplyr::select(treatment,hh_size,g2002,g2000,p2004,p2002,p2000,sex,age,n)%>%
+  kable(digits = 2,caption="Replication of table 1")
+
+```
+
+
+
+### Question 5 - GGL don’t bother to do a t-test for the difference-in-means, but let’s do it ourselves.Conduct a t-test for the difference in mean household age between the Control and ‘Neighbors’conditions. Interpret the result.
+
+```{r,warning=F, message=F,echo=F}
+t.test(data$age[data$treatment=="Control"], data$age[data$treatment=="Neighbors"])
+```
+
+There's no significant difference between the mean age between control and neighbors - that means control and treatment are balanced on age and this variable won't be a source of bias on our estimates.
+
+### Question 6 - Now let’s look at the results of the experiment.  Perform a simple difference-in-meanst-test for voter turnout between the Control and ‘Neighbors’ groups in the individual data.Interpret the result.
+
+```{r,warning=F, message=F,echo=F}
+t.test(data$voted[data$treatment=="Control"],data$voted[data$treatment=="Neighbors"])
+```
+While the voting average for the control group was 29,66%, the "Neighbors" treatment group voted, on average, 37,79%. This difference is statistically significant at 0.05, meaning there's a positive effect of the treatment (social pressure as knowing the neighbors voting) on the outcome (voting on 2006 Primary Election)
+
+### Question 7 - Now run an OLS regression to understand the effect of each treatment on voter turnout, toreplicate column (a) of Table 3. (If you prefer you can use treatment as a factor variable, not a series of dummies like the authors use. For this question do not adjust the standard errors).Interpret the results in terms of the change in probability of voting in the election.
+
+```{r,warning=F, message=F,echo=F}
+#reordering the treatment factor so the "Control" is the reference group for estimates and the intercept.
+data <- data%>%
+  mutate(treatment=factor(treatment, levels = c("Control",
+                                                "Civic Duty",
+                                                "Hawthorne",
+                                                "Self", 
+                                                "Neighbors")))
+
+#simple OLS
+reg1 <- lm(voted ~ treatment,data = data)
+pander(summary(reg1))
+```
+
+The results show a progressive increase in the voting turnout along the four groups of treatments and their social pressure effect, confirming the hypothesis. For the highest social pressure treatment (Neighbors), for example, there's a 8.13% increase in the voting turnout compared to the control group.
+
+### Question 9 - Repeat your regression but this time with standard errors clustered to the household level.What difference does this make? Why do we do this?
+
+```{r,warning=F, message=F,echo=F}
+library(RCurl)
+library(gdata) 
+library(zoo)
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+
+pander(summary(reg1,cluster = c("hh_id")))
+```
+Now the standard errors are slightly higher for all the estimates - for example, the standard error for the Neighbors treatment coefficient was 0.0026 and now it's 0.0033. We do this so we can take unobserved intrahousehold correlation into account on our estimation. 
+
+### Question 10 - Next, we want to add block-level fixed effects to our model to reproduce column (b) of Table 3. How do the results change?  How does this change the comparisons we are making in the regression?
+
+```{r,warning=F, message=F,echo=F}
+library(RCurl)
+library(gdata) 
+library(zoo)
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+
+clusmean <- data %>%
+  mutate(treat.neighbor = ifelse(treatment=="Neighbors", 1,0)) %>%
+  filter(treatment %in% c("Control", "Neighbors")) %>%
+  group_by(cluster) %>%
+  summarise(treat.mean = mean(treat.neighbor)) %>%
+  ungroup()
+
+data2 <- data %>%
+  filter(treatment %in% c("Control", "Neighbors")) %>%
+  mutate(treat.neighbor = ifelse(treatment=="Neighbors", 1,0)) %>%
+  left_join(clusmean) %>%
+  mutate(treat.neighbor2 = treat.neighbor-treat.mean)
+
+reg2 <- lm(voted ~ treat.neighbor2 ,data = data2)
+pander(summary(reg2,cluster = c("hh_id")))
+
+```
+
+The voting turnout on control group and the effect from the Neighbor treatment now it's a little bit higher when compared to the regression without the block-level fixed effects. [Not sure how to interpret this change, however]
+
+### Question 11 - Add covariates (g2000,g2002,p2000,p2002,p2004) to your model from Q10 to reproduce column 3 of Table 3. How do the results change when we add covariates?
+
+```{r,warning=F, message=F,echo=F}
+reg3 <- lm(voted ~ treat.neighbor2 + g2000 + g2002 +p2000+p2002+p2004 ,data = data2)
+pander(summary(reg3,cluster = c("hh_id")))
+
+```
+
+The results don't change much, with slight reduction for the Neighbor estimate. The estimate goes from 0.08207 (without covariates) to 0.08170 (with covariates). This means the covariates we added have so little effect on the voting turnout that they don't change the effect of the treament. 
+
+## Question 12 - In place of an OLS regression, use a logit regression model to run the same model as inQ8. How would you interpret the results?
+
+```{r,warning=F, message=F,echo=F}
+reg4.logit <- zelig(voted ~ treatment,
+                    data = data, model = "logit")
+
+pander(reg4.logit$zelig.out$z.out[[1]])
+```
+
+The estimates of the logit regression are the log of the odds (probability of success over the probability of failure), so we need to exponentiate the estimates to get the odds ratio. For example, the coefficient for Neighbors treament is the log of odds ratio between the Neighbor treated group and the Control group. Exponentiating it:
+
+```{r,warning=F, message=F}
+exp(0.3651) 
+```
+
+Or else, in Zelig, we can just add "odds_ratio = TRUE" in the summary to the conversion is automatic:
+
+```{r,warning=F, message=F}
+summary(reg4.logit,odds_ratios = TRUE)
+```
+So, the odds of voting for Neighbors-treated group is 44% higher than the odds for the control group.
+
+## Question 13 - Predict the first difference (the change) of the probability of voting when moving fromthe ‘Control’ to ‘Neighbors’ treatment category using your logit model from Q12.
+
+```{r,warning=F, message=F,echo=F}
+
+x.control<- setx(reg4.logit, treatment = "Control")
+x.treat <- setx(reg4.logit, treatment = "Neighbors")
+logit.sim <- sim(reg4.logit, x = x.control, x1 = x.treat)
+summary(logit.sim)
+par(mar=c(2.5,2.5,2.5,2.5))
+plot(logit.sim)
+```
+
+There's a change of 0.0812 for the expected value for voting when moving from control to treatment (but I'm not sure yet how to actually interpret this mean in a logit)
+
+## Question 14 - How does the data processing the authors conduct on p.36-37 (under ‘Study Population’)affect your interpretation of the conclusions?
+
+The missing ZIP codes or vote history might have a different voting behavior than those who were included, i.e., the missingness wasn't completely at random. 
+The exclusion of blocks with high number of apartments also can affect the results given people who live in these blocks can have a different voting pattern, or different propensity for social pressure than single-family homes
+
+## Question 15 - How generalizable are the findings of this study to other elections? To the same set ofelections in 2010? To neighbouring Indiana in the same year? To elections in Brazil?
+
+It's plausible to believe the same effects will hold for other north-american elections, but maybe with smaller impact. For more recent elections, the social pressure measured by the mail experiment might be less effective when interacting with other sources of social norms and expectations as those in the social media.
+
+The results could also change on neighborhoods with higher urban density, where each individual can go by almost anonymous and will experience less social pressure. On the other hand, less urban neighborhoods or countryside cities where everyone know each other the social pressure effect can be even higher.
+
+For Brazil, due to the compulsory voting and where the voter turnout hasn't been a problem, the parameters of the voting calculus presented by the authors (p. 35) is probably different. Given the cost of not voting is higher than voting (if you decide not to vote, you have to justify your absence or pay a fine later; otherwise, you'll lose your passport and other rights), these incentives might have a marginal effect on a already high voter turnout.
