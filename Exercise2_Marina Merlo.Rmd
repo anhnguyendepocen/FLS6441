@@ -1,0 +1,257 @@
+---
+title: "Replication Exercise 2 - Survey and Lab Experiments"
+author: "Marina Merlo - n. USP: 7197987"
+date: "April 17th, 2019"
+output: pdf_document
+---
+```{r, echo=FALSE, warning=F, message=F}
+library(tidyverse)
+library(knitr)
+library(data.table)
+library(effects)
+library(MASS)
+library(Zelig)
+library(ZeligChoice)
+library(estimatr)
+library(stargazer)
+library(pander)
+library(texreg)
+data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_4/Replication/Whitt_replication.csv")
+```
+
+## 1. Briefly describe what the ‘treatment’ and the ‘control’ is in this experiment. What is the outcome measure?
+
+The study aims to check whether the subjects will discriminate other people based on their ethnicity with a modified dictador game, testing if, on average, there's a prevalence of pro-social norms or parochialism. The treatment is when the subject has to choose how to split the money between someone from the same ethnic group and other from outside his group; the control is where both recipients are from a different ethnic group. 
+
+## 2. To describe how the subjects split the money in all the games, replicate a figure similar to Figure 1 in Whitt 2014 (or an equivalent Table if a Figure is tricky).
+
+
+```{r, echo=FALSE,warning=F, message=F,out.width = '70%',fig.align='center'}
+data %>%
+  mutate(allocation = ifelse(Amount %in% c(0,10), "0 and 10",
+                             ifelse(Amount %in% c(1,9), "1 and 9",
+                                    ifelse(Amount %in% c(2,8), "2 and 8",
+                                           ifelse(Amount %in%c(3,7), "3 and 7",
+                                                  ifelse(Amount %in% c(4,6),"4 and 6", "5 and 5"))))))%>%
+  group_by(allocation) %>%
+  summarise(n=n(),
+            pct = round(100*(n/nrow(data)), digits = 2)) %>%
+  ggplot(aes(x = allocation,y=pct)) +  
+        geom_bar(stat="identity")+
+  theme_classic() +
+  geom_text(aes(label=pct), position=position_dodge(width=0.9), vjust=-0.25) +
+  labs(x = "Allocation Decision",y = "%")
+```
+
+*[However, the numbers are slightly different from the figure of the paper - couldn't figure out why]*
+
+## 3. Calculate the average amount that each subject allocated to a co-ethnic (a respondent of the same ethnicity as the subject). What can we conclude from this number about co-ethnic bias?
+
+
+
+```{r, echo=FALSE}
+data %>%
+  mutate(Recipient = ifelse(Subject_ethnicity==Recipient_ethnicity, "Co-Ethnic", "Non Co-Ethnic")) %>%
+  group_by(Recipient) %>%
+  summarise(Avg.Amount = mean(Amount))%>%kable(digits=2)
+```
+
+The average allocation for a co-ethnic recepient is higher, indicating that there's a bias towards same ethnic (parochialism)
+
+## Produce a 3x3 table showing the average allocation decision, with the subject’s ethnicity in the rows and the recipient’s ethnicity in the columns.
+
+```{r, echo=FALSE}
+data %>%
+  spread(Recipient_ethnicity,Amount) %>%
+  group_by(Subject_ethnicity) %>%
+  summarise(Bosnjak = mean(Bosnjak,na.rm=T),
+            Croat = mean(Croat,na.rm=T),
+            Serb = mean(Serb,na.rm=T))%>%
+  kable(digits=2)
+  
+```
+
+## 5.  From the table you produced in Q4, which ethnicity exhibits the greatest co-ethnic favouritism (in-group bias)? Which ethnic pairing is most asymmetric (i.e. where A treats B better then B treats A)?
+
+The Croats show the greatest in-group bias, with an average allocation of $5.92$ KM. 
+
+The most asymmetric group is between the Croats and the Bosnjaks. While Bosbjaks give, on average, $4.92$ KM to the Croats, the Croats in its turn give $4.45$ KM to the Bosnjaks - a difference of $0.47$ KM.
+
+*[I had to do this calculation by hand - is there a way to make it automatically?]*
+
+## 6. Another way to analyse the data is with a regression. First, conduct an OLS regressionto assess whether the recipient’s ethnicity has a general effect on the amount they receive,ignoringthe subject’s ethnicity for now. Interpret the results of this regression.
+
+```{r, echo=FALSE}
+data %>% lm(Amount~Recipient_ethnicity, data=.)%>%
+  tidy()%>%
+  kable(digits=2)
+```
+
+Even though the estimate for the Serbian is negative, there's no significant difference in the received amount depending on the recipient ethnicity. 
+
+## 7. What about the subject’s ethnicity? Does subject ethnicity affect the average allocation to recipients, ignoring recipient ethnicity? If you run this regression, the results will look strange. Why? *Hint: Look at the value of the interept and think about what’s actually happening with the allocations in a single round of the game.*
+
+```{r, echo=FALSE}
+data %>% lm(Amount~Subject_ethnicity, data=.)%>%
+  tidy()%>%
+  kable(digits=2)
+```
+
+The results look weird because all the subjects have the same amount to allocate - so, on average, disregarding the recepient ethnicity, they will always alocate $5$ KM to each recipient. 
+
+## 8. Now let’s evaluate if the subject’s ethnicity affects how they allocate the money depending on the recipient’s ethnicity. Conduct a regression that interacts the recipient’s ethnicity with the subject’s ethnicity. Carefully interpret the results, including how much each subject ethnicity is estimated to allocate on average to every recipient ethnicity.
+
+```{r, echo=FALSE,out.width = '70%',fig.align='center'}
+reg3<- lm(Amount~Subject_ethnicity + Recipient_ethnicity + Subject_ethnicity*Recipient_ethnicity, 
+          data=data) 
+kable(tidy(reg3),digits = 3)
+
+subject <- levels(as.factor(data$Subject_ethnicity))
+recipient <- levels(as.factor(data$Recipient_ethnicity))
+df2 <- data.frame()
+
+for(sub in subject){
+  for(rec in recipient){
+      d<-as.data.frame(predict.lm(reg3, data.frame(Subject_ethnicity = sub, 
+                                                   Recipient_ethnicity = rec),
+                                  se.fit = T))%>%
+        mutate(grp = paste(sub,rec,sep = " to "))
+      df2 <- rbind(df2,d)
+    }
+  }
+
+
+ggplot(df2, aes(grp, fit, ymin = fit-se.fit, ymax = fit+se.fit)) +
+  geom_pointrange() +
+  theme_minimal()+
+  labs(x = "Subject - Recipient",y = "Predicted Allocation") +
+  coord_flip()
+
+```
+
+
+The predicted allocation between co-ethnics are higher than those between different ethnical groups.
+
+Bosnjaks give more money to Croats than to Serbs; but there's no difference in the allocation pattern from Croats to Serbs and Bosnjaks recipients and from Serbs to other ethnic recipients.
+
+## 9. The estimates in Q7 and Q4 are different from those in Table 3 of Whitt (2014). So far we have assumed that the allocations only depend on the individual ethnicities of each recipient and not on the specific pair of recipients in each game.  For example, Bosniaks may have negative sentiments towards both Croats and Serbs, but what happens when they have to choose between allocating money in the specific pairing of Croats and Serbs together? 
+## Run a regression which includes a three-way interaction between subject ethnicity, recipient ethnicity and the pair of the recipients’ ethnicity (‘Recipient_Pairing’). Compare the results to Table 3 in Whitt 2004 (which just presents the averages, not the results of a regression, but should be comparable if we put in the effort to interpret our coefficients correctly)
+
+```{r, echo=FALSE,out.width = '70%',fig.align='center',warning=F,message=F}
+
+reg4<- lm(Amount~ Subject_ethnicity*Recipient_ethnicity*Recipient_Pairing, data=data) 
+kable(tidy(reg4),digits = 3,format = "latex", booktabs = TRUE) %>%
+          kableExtra::kable_styling(latex_options = "scale_down")
+
+pairing <- levels(as.factor(data$Recipient_Pairing))
+subject <- levels(as.factor(data$Subject_ethnicity))
+recipient <- levels(as.factor(data$Recipient_ethnicity))
+df3 <- data.frame()
+
+for (pair in pairing){
+  for(sub in subject){
+    for(rec in recipient){
+      d<-as.data.frame(predict.lm(reg4, data.frame(Recipient_Pairing = pair,
+                                                   Subject_ethnicity = sub, 
+                                                   Recipient_ethnicity = rec),
+                                  se.fit = T))%>%
+        mutate(grp = paste(sub,rec,pair,sep = " - "),
+               rec = rec,
+               sub = sub,
+               pair = pair)
+      df3 <- rbind(df3,d)
+    }
+  }
+}
+
+df3 %>%
+  filter(!(pair == "Bosnjak Croat" & rec == "Serb")) %>% #removing combinations that weren't tested
+  filter(!(pair == "Bosnjak Serb" & rec == "Croat"))%>%
+  filter(!(pair == "Croat Serb" & rec == "Bosnjak")) %>%
+  rowwise() %>%
+  mutate(group = ifelse(str_detect(pair,sub),"In-Group", "Out-Group")) %>%
+ggplot(aes(reorder(grp,group), fit, ymin = fit-se.fit, ymax = fit+se.fit))+
+  geom_pointrange(aes(color=group)) +
+  theme_minimal()+
+  labs(x = "Pair - Subject - Recipient",y = "Predicted Allocation") +
+  coord_flip()
+```
+
+The figure above show the predicted allocation according to each combination from our three-way interaction OLS. 
+Whitt (2004) argues that only Bosniak subjects are biased against one group over the other. Indeed, among the Out-Group tests (in blue) there's significant difference only when Bosnjaks are chosing between Croats and Serbs, favouring the former (last two blue dots). All the other out-group predictions fall between the average of 5. All other in-group pairs shows that subjects tends do favour their own ethnic group. 
+
+## 10. Replicate the simple t-test from Table 3 in Whitt (2014) for the difference-in-means of allocations between Croats and Serbs for Bosniak subjects. (I didn’t get the same t-statistics as in Table 3, did you?). 
+
+```{r,echo=FALSE}
+data %>%
+  filter(Recipient_Pairing == "Croat Serb" & Subject_ethnicity == "Bosnjak") %>%
+t.test(Amount~Recipient_ethnicity, data=.)
+```
+
+Although the difference is significant at 95% confidence interval, the t-statistics is lower than the one presented in the article. 
+
+## 11. The T-test in Q9 seems too easy. The more recipient 1’s allocation increases, the smaller recipient 2’s allocation is automatically(since they have to sum to 10). As the mean allocationto one ethnicity goes up the mean to the other automatically goes down, producing a bigger‘gap’. To correct this, run the same comparison as in Q10 (allocations between Croats and Serbs for Bosniak subjects) but this time one of either (i) a t-test of whether the first recipient’s allocation is equal to 5, or (ii) a paired t-test that takes into account the fact that values in the first allocation are correlated with those in the second allocation. The two approaches should give the same answer. How does this change the t-statistics/p-values compared to Q10?
+
+```{r,echo=FALSE}
+data %>%
+  filter(Recipient_Pairing == "Croat Serb" & Subject_ethnicity == "Bosnjak") %>%
+t.test(Amount~Recipient_ethnicity, data=., paired=T)
+
+```
+
+When we set the t-test to account for the correlation between both allocations, the test loses its significance. The test shows that 0 is a plausible value for the difference in means at 95% confidence interval. 
+
+## 12. To address this same problem of dependent data in our regression from Q8, we need to cluster the standard errors for each game (every two rows in our data where the allocation ssum to 10). Run the same regression as in Q8 but with clustered standard errors, and assess if it changes any of the conclusions.
+
+
+```{r, echo=FALSE,out.width = '70%',fig.align='center',message=F}
+reg5<- lm_robust(Amount~Subject_ethnicity + Recipient_ethnicity + Subject_ethnicity*Recipient_ethnicity, 
+          data=data, clusters=Game) 
+kable(tidy(reg5),digits = 3,format = "latex", booktabs = TRUE) %>%
+          kableExtra::kable_styling(latex_options = "scale_down")
+
+subject <- levels(as.factor(data$Subject_ethnicity))
+recipient <- levels(as.factor(data$Recipient_ethnicity))
+df4 <- data.frame()
+
+for(sub in subject){
+  for(rec in recipient){
+      d<-as.data.frame(predict(reg5, data.frame(Subject_ethnicity = sub, 
+                                                   Recipient_ethnicity = rec),
+                                  se.fit = T))%>%
+        mutate(grp = paste(sub,rec,sep = " to "))
+      df4 <- rbind(df4,d)
+    }
+  }
+
+
+ggplot(df4, aes(grp, fit, ymin = fit-se.fit, ymax = fit+se.fit)) +
+  geom_pointrange() +
+  theme_minimal()+
+  labs(x = "Subject - Recipient",y = "Predicted Allocation (clustered S.E.)") +
+  coord_flip()
+
+```
+
+Our standard errors are now smaller. The conclusions remain the same - there's higher allocation between co-ethnic. 
+
+
+## 13. How much does treating other ethnicities equally in the game predict whether subjects expect other ethnic groups to treat them fairly? Let’s try to run a similar analysis to the first column of Table 6 in Whitt (2014). Create a binary dummy variable indicating when the subject makes an ‘equal’ allocation (5:5), then filter the data to just the ‘first’ recipient to avoid duplicating the rows, and run the logit regression of ‘Fairness’ on this equal allocation dummy variable, with controls for subject ethnicity, gender and age. Compare the result to the first column of Table 6 (it may not be exactly the same, but it should be similar at about the second decimal place).
+
+```{r,echo=F, message=F}
+data %>% 
+  group_by(Game) %>% 
+  mutate(amount.diff = Amount - lag(Amount),
+         fair.allocation = ifelse(amount.diff==0,1,0)) %>%
+  ungroup()%>%
+  mutate(Subject_ethnicity=factor(Subject_ethnicity, levels = c("Serb",
+                                                "Bosnjak",
+                                                "Croat"))) %>%
+  na.omit() %>%
+  zelig(Fairness ~ fair.allocation + Subject_ethnicity + Subject_Gender + Subject_Age,
+        data = ., model = "logit",cite=F) %>%
+  summary()
+```
+
+The estimates are different from the paper, but close enought so the interpretation is pretty much the same (none of the estimates are statistically significant, while in the paper the "Egalitarian" dummy is. Here we used a different measure for the same notion of fairness)
+
