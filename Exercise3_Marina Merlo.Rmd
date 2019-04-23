@@ -1,0 +1,251 @@
+---
+title: "Replication Exercise 3 - Natural Experiments"
+author: "Marina Merlo"
+date: "21 de abril de 2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  pdf: default
+---
+
+```{r, echo=FALSE, warning=F, message=F}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(data.table)
+library(effects)
+library(MASS)
+library(Zelig)
+library(ZeligChoice)
+library(estimatr)
+library(stargazer)
+library(float)
+library(pander)
+library(texreg)
+library(plm)
+library(RCurl)
+library(gdata) 
+library(zoo)
+library(gridExtra)
+ 
+knitr::opts_chunk$set(echo = FALSE)
+data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_5/Replication/DeLaO.csv")
+```
+## 1.  First, what is treatment in this study?  What is control?  What is the outcome being measured?
+
+Both treatment and control is to have been assigned to Progresa, but they differ on how long each group received the program: the treatment group received the benefits for 21 months and the control, for 6 months before the elections. The outcome being measured is the incumbent voting.
+
+## 2. To help assess the balance between treatment and control units, reproduce Table 2 in DeLa O (2013) (Don’t worry about the standard errors in brackets in the ‘Difference’ column for now). 
+
+```{r, echo=FALSE,message=F,warning=F}
+
+data %>%
+  group_by(treatment) %>%
+  summarise(Poverty = mean(avgpoverty),
+            Population = mean(pobtot1994),
+            Pop.Eligible = mean(pobelegiblep),
+            No.of.Villages = mean(villages),
+            Ran.Assigned.Villages1 = mean(one_random),
+            Ran.Assigned.Villages2 = mean(two_random),
+            Turnout1994 = mean(t1994,na.rm=T),
+            PRI.voteshare94 = mean(pri1994s,na.rm=T),
+            PAN.voteshare94 = mean(pan1994s,na.rm=T),
+            PRD.voteshare94 = mean(prd1994s,na.rm=T)) %>%
+  gather(key="Variable",value="value",-treatment)%>%
+  spread(key="treatment",value="value") %>%
+  rename(Late = `0`,
+         Early = `1`) %>%
+  dplyr::select(Variable,Early, Late) %>%
+  mutate(Difference = Early - Late)%>%
+  arrange(factor(Variable,levels = c("Poverty","Population","Pop.Eligible","No.of.Villages",
+                                     "Ran.Assigned.Villages1","Ran.Assigned.Villages2","Turnout1994",
+                                     "PRI.voteshare94","PAN.voteshare94","PRD.voteshare94")))%>%
+  kable(digits = 3)
+
+```
+
+## 3. Is the balance shown in this table (Table 2 in De La O) a necessary condition for causal inference? Is it a sufficient condition for causal inference?
+
+The balance table can be considered a necessary condition for causal inference, but isn't sufficient. We would need an exhaustive list with the confounder variables, but this is impossible: there will always be latent or omitted variables that might explain our outcomes. More importantly, the balance table says nothing about the randomization and the treatment assignment mechanism in the experiment - usually, we need qualitative data (as briefly provided by De La O (2013) in page 5) to verify if the experiment happened "as-if" random. Knowing these aspects would be sufficient to assess if the treatment is independent of the potential outcomes.
+
+## 4. The main analysis in De La O is conducted on a subset of the full dataset. Filter the data so that only precincts that have either one treatment village (numerotreated) or one control village (numerocontrol) inside them are included in your new dataset. What percentage of the original precincts are included in the new dataset?
+
+```{r, echo=FALSE,message=F,warning=F}
+d_analysis <- data %>%
+  filter(numerocontrol ==1 | numerotreated == 1)
+
+```
+
+The new dataset has `r nrow(d_analysis)` observations, which represents `r 100*round(nrow(d_analysis)/nrow(data),digits = 4)`% of the original precints.
+
+## 5. One of De La O’s conclusions is that treatment boosts turnout. Conduct a simple difference-in-means t-test on the filtered dataset from Q4 to assess this claim. What is the estimated difference-in-means and how statistically significant is the result?
+
+```{r, echo=FALSE,message=F,warning=F}
+d_analysis %>%
+t.test(t2000~treatment, data=.)
+
+```
+
+The estimated difference-in-means in the 2000 turnout for treatment and control isn't statistically significant at a 95% confidence level. The estimated difference in turnout means is between -0.1014 and 0.01016.
+
+## 6. De La O’s analysis of turnout is in the upper panel of Table 3, where she runs a regression, adding some controls. Replicate this turnout regression. The controls (listed under De LaO’s Table 3) are avgpoverty, pobtot1994, votos_totales1994,pri1994,pan1994,prd1994 and there is a fixed effect for the villages variable. (Try to include the robust standard errors, but no problem if you cannot). Interpret the results.
+
+```{r echo=F,results='asis'}
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+reg1 <- lm(t2000 ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis)
+
+robust_se1 <- as.vector(summary(reg1,robust = T)$coefficients[,"Std. Error"])
+ 
+stargazer(reg1,se = list(robust_se1),header = F,float=F,no.space = TRUE, keep = c("treatment","Constant"))
+
+```
+
+
+The constant is different from the paper, but the rest of the coefficients are the same. The fixed effects in the village numbers per precint accounts for unobserved confounders related to it. The regression shows a positive and significant effect of the treatment in the turnout at 90% confidence. There's an average of 5.3% increase in the turnout in the precints with treated villages, but this effect vary from 8.3% to 2.3%. 
+
+## 7. Now run the same regression but exclude the village fixed effects (keep the other controls).How does this change the comparisons we are making between treated and control villages? How do the results change?
+
+```{r echo=F,results='asis'}
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+reg2 <- lm(t2000 ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994, data = d_analysis)
+
+robust_se2 <- as.vector(summary(reg2,robust = T)$coefficients[,"Std. Error"])
+ 
+stargazer(reg2,se = list(robust_se2), float = F, header = F,no.space = TRUE, keep = c("treatment","Constant"))
+
+```
+
+Without the villages fixed effects, we aren't taking into account possible unobserved difference in the precints due its number of treated villages.  The treatment coefficient and standard errors are smaller, but still significant at 90% confidence. Now there's an average effect of 4.5% increase in the turnout in the precints with treated villages, varying from 1.7% to 7.3%. 
+
+## 8. Replicate all four columns of the upper panel of Table 3 in De La O (2013). Interpret theresults.
+
+```{r echo=F,results='asis'}
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+reg3 <- lm(pri2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis)
+robust_se3 <- as.vector(summary(reg3,robust = T)$coefficients[,"Std. Error"])
+
+reg4 <- lm(pan2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis)
+robust_se4 <- as.vector(summary(reg4,robust = T)$coefficients[,"Std. Error"])
+
+reg5 <- lm(prd2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis)
+robust_se5 <- as.vector(summary(reg5,robust = T)$coefficients[,"Std. Error"])
+ 
+stargazer(reg1,reg3,reg4,reg5,se = list(robust_se1,robust_se3,robust_se4,robust_se5), float = F, header = F,no.space = TRUE, keep = c("treatment","Constant"))
+
+```
+
+The positive effect of the treatment only happens for the turnout rates and the votes for the PRI party, the incumbent, over the total population.
+
+## 9.Now let’s look at some critiques of the paper. Normally, we measure turnout percentages and vote shares as being naturally bounded between 0 and 100% (or 0 and 1). Other numbers don’t make sense. Use a boxplot or similar graphic to assess the distribution of values on the four dependent variables. What do you find?
+
+```{r echo=F, message=F, warning=F,out.width = '70%',fig.align='center'}
+turn <- ggplot(d_analysis, aes(y=t2000)) + 
+  geom_boxplot()+ geom_hline(yintercept=1,color = "red") + theme_minimal()
+pri <- ggplot(d_analysis, aes(y=pri2000s)) + 
+  geom_boxplot()+ geom_hline(yintercept=1,color = "red") + theme_minimal()
+pan <- ggplot(d_analysis, aes(y=pan2000s)) + 
+  geom_boxplot()+ geom_hline(yintercept=1,color = "red") + theme_minimal()
+prd <- ggplot(d_analysis, aes(y=prd2000s)) + 
+  geom_boxplot() + geom_hline(yintercept=1,color = "red") + theme_minimal()
+grid.arrange(turn, pri,pan,prd, ncol=4)
+```
+
+There are turnout percentages and vote shares for all the parties above 100% (all the dots above the red line at each boxplot), meaning that our estimates in the previous regressions were made with illogical values and probably are biased. 
+
+## 8. As a ‘quick fix’ replace all the unrealistic values above 100% (1) with NA for all the turnout percentage and vote share dependent variables. Re-run your regressions from question 8. Do your conclusions change? Why might this be?
+
+```{r,echo=F,message=F,warning=F,results='asis'}
+d_analysis2 <- d_analysis %>%
+ filter_at(vars(t2000,pri2000s,pan2000s,prd2000s), all_vars(.<=1))
+
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+
+reg6 <- lm(t2000 ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis2)
+robust_se6 <- as.vector(summary(reg6,robust = T)$coefficients[,"Std. Error"])
+
+reg7 <- lm(pri2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis2)
+robust_se7 <- as.vector(summary(reg7,robust = T)$coefficients[,"Std. Error"])
+
+reg8 <- lm(pan2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis2)
+robust_se8 <- as.vector(summary(reg8,robust = T)$coefficients[,"Std. Error"])
+
+reg9 <- lm(prd2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis2)
+robust_se9 <- as.vector(summary(reg9,robust = T)$coefficients[,"Std. Error"])
+ 
+stargazer(reg6,reg7,reg8,reg9,se = list(robust_se6,robust_se7,robust_se8,robust_se9), float = F, header = F,no.space = TRUE, keep = c("treatment","Constant"))
+
+```
+
+There were 9 observations with percentage values above 100%. When we  run the same regressions with this filtered dataset, the treatment loses its significance for all the dependent variables. Probably the earlier results were driven by those higher outliers. 
+
+## 9. Next, examine the control variable for population in 1994 (pobtot1994). Use a graph or other method to identify any extreme outliers. Extreme values of control variables are not a problem if they are balanced across treatement and control groups. But are they in this case? Identify whether the extreme outliers are in the control or treatment group.
+
+```{r echo=F, message=F, warning=F,out.width = '70%',fig.align='center'}
+ggplot(d_analysis, aes(y=pobtot1994)) + 
+  geom_boxplot()+ 
+  facet_wrap(~treatment) + theme_minimal()
+``` 
+
+The outliers are unbalanced between control and treatment groups - in the latter, there are three observations with populations above 25.000
+
+## 10. Remove the extreme outliers you identified in Q9 from the dataset (the dataset before you removed the infeasible values of the dependent variables). Re-run your regressions. Do your conclusions change? Why might this be?
+
+```{r,echo=F,message=F,warning=F,results='asis'}
+d_analysis3 <- d_analysis %>%
+ filter(pobtot1994<=25000)
+
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+
+reg10 <- lm(t2000 ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis3)
+robust_se10 <- as.vector(summary(reg10,robust = T)$coefficients[,"Std. Error"])
+
+reg11 <- lm(pri2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis3)
+robust_se11 <- as.vector(summary(reg11,robust = T)$coefficients[,"Std. Error"])
+
+reg12 <- lm(pan2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis3)
+robust_se12 <- as.vector(summary(reg12,robust = T)$coefficients[,"Std. Error"])
+
+reg13 <- lm(prd2000s ~ treatment + avgpoverty + pobtot1994 + votos_totales1994 + pri1994 + pan1994 + prd1994 + as.factor(villages), data = d_analysis3)
+robust_se13 <- as.vector(summary(reg13,robust = T)$coefficients[,"Std. Error"])
+ 
+stargazer(reg10,reg11,reg12,reg13,se = list(robust_se10,robust_se11,robust_se12,robust_se13), float = F, header = F,no.space = TRUE, keep = c("treatment","Constant"))
+
+```
+
+Without these extreme values in the population size, the treatment is statistically significant just for the vote share of PRI party. The significance for the turnout is likely to vanish because the outliers in the population are directly related to the turnout variable, biasing its estimation.
+
+## 11. One more issue. The controls for the regressions you have conducted so far are the absolute number of votes for turnout, PRI, PAN and the PRD. But for the dependent variable, De LaO is using the percentage vote share of the population. Arguably it might be more consistent to use the same measurement approach on both the left and right-hand sides of the regression.Try implementing the regressions using the controls t1994, pri1994s, pan1994s, prd1994s in place of votos_totales1994, pri1994, pan1994, prd1994. Ignore the other corrections you made in previous questions. Does this change your conclusions? Why might this be?
+
+```{r,echo=F,message=F,warning=F,results='asis'}
+url_robust <- "https://raw.githubusercontent.com/IsidoreBeautrelet/economictheoryblog/master/robust_summary.R"
+eval(parse(text = getURL(url_robust, ssl.verifypeer = FALSE)),
+     envir=.GlobalEnv)
+
+reg14 <- lm(t2000 ~ treatment + avgpoverty + pobtot1994 + t1994 +  pri1994s + pan1994s + prd1994s + as.factor(villages), data = d_analysis)
+robust_se14 <- as.vector(summary(reg14,robust = T)$coefficients[,"Std. Error"])
+
+reg15 <- lm(pri2000s ~ treatment + avgpoverty + pobtot1994 + t1994 +  pri1994s + pan1994s + prd1994s + as.factor(villages), data = d_analysis)
+robust_se15 <- as.vector(summary(reg15,robust = T)$coefficients[,"Std. Error"])
+
+reg16 <- lm(pan2000s ~ treatment + avgpoverty + pobtot1994 + t1994 +  pri1994s + pan1994s + prd1994s + as.factor(villages), data = d_analysis)
+robust_se16 <- as.vector(summary(reg16,robust = T)$coefficients[,"Std. Error"])
+
+reg17 <- lm(prd2000s ~ treatment + avgpoverty + pobtot1994 + t1994 +  pri1994s + pan1994s + prd1994s + as.factor(villages), data = d_analysis)
+robust_se17 <- as.vector(summary(reg17,robust = T)$coefficients[,"Std. Error"])
+ 
+stargazer(reg14,reg15,reg16,reg17,se = list(robust_se14,robust_se15,robust_se16,robust_se17), float = F, header = F,no.space = TRUE, keep = c("treatment","Constant"))
+
+```
+
+Using the same measurement for the control variables also vanishes all the statistical significance of the treatment for all the dependent variables. The huge difference in the magnitudes between dependent (going from 0 to 1) and the independent (going as high as 1319 in votos_totales1994, for example) variables probably drove the correlation between the variables to be higher than they actually are. [not sure about this though] 
