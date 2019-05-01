@@ -30,7 +30,9 @@ data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_6/Repli
 ```
 
 ## 1. What is the treatment? What is the control? What is the outcome? What is the instrument for treatment?
-treat is cool 
+
+The treatment is to watch the TV program about the Proposition 209, and the control, to don't watch it. The outcome is a change on viewer's political knowledge and attitudes, measured as voting in the election; voting, supporting and having information on the proposition and the salience of the issue. The instrument is whether the respondents were asked to watch the program. 
+
  
 ## 2. If we did not know about instrumental variables, the basic observational regression we might run is to examine directly how the treatment variable is related to the outcome variable. Run this basic observational regression and interpret the results. *NB:(The outcome variable is anordered categorical variable - feel free to use either an ordered multinomial logit model or a simple linearOLS regression for all the questions, it doesn’t make much difference to the results)* 
 
