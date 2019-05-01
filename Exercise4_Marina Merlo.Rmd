@@ -34,7 +34,17 @@ data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_6/Repli
 The treatment is to watch the TV program about the Proposition 209, and the control, to don't watch it. The outcome is a change on viewer's political knowledge and attitudes, measured as voting in the election; voting, supporting and having information on the proposition and the salience of the issue. The instrument is whether the respondents were asked to watch the program. 
 
  
-## 2. If we did not know about instrumental variables, the basic observational regression we might run is to examine directly how the treatment variable is related to the outcome variable. Run this basic observational regression and interpret the results. *NB:(The outcome variable is anordered categorical variable - feel free to use either an ordered multinomial logit model or a simple linearOLS regression for all the questions, it doesn’t make much difference to the results)* 
+## 2. If we did not know about instrumental variables, the basic observational regression we might run is to examine directly how the treatment variable is related to the outcome variable. Run this basic observational regression and interpret the results. *NB:(The outcome variable is anordered categorical variable - feel free to use either an ordered multinomial logit model or a simple linear OLS regression for all the questions, it doesn’t make much difference to the results)* 
+
+```{r echo=F,message=F,warning=F, results='asis'}
+data%>%
+  mutate(Info_Proposition=as.numeric(Info_Proposition)) %>%
+ zelig(Info_Proposition ~ Watched_Program,
+                     data = ., model = "normal",cite = F) %>%
+  from_zelig_model()%>%
+  stargazer(keep = c("Constant","Watched_Program"))
+```
+
 
 ## 3. Do you trust the treatment effect estimates from Q2? What are the major threats to causal inference here? Provide concrete examples if why the estimate in Q2 might be wrong.
 
