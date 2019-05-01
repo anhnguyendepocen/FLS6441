@@ -1,6 +1,4 @@
 # FLS6441
 FLS6441 - Quantitative Methods III
 
-scripts made during the course
-
-“This is a line from RStudio”.
+Code and files prepared during the class and replications exercises
