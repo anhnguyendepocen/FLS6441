@@ -3,6 +3,8 @@ title: "Replication Exercise 4 - Instrumental Variables"
 author: "Marina Merlo"
 date: "30 de abril de 2019"
 output: pdf_document
+header-includes:
+  - \usepackage{color}
 ---
 
 ```{r, echo=FALSE, warning=F, message=F}
@@ -24,6 +26,9 @@ library(RCurl)
 library(gdata) 
 library(zoo)
 library(gridExtra)
+#install.packages("AER")
+library(AER)
+
  
 knitr::opts_chunk$set(echo = FALSE)
 data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_6/Replication/IV.csv")
@@ -36,30 +41,80 @@ The treatment is to watch the TV program about the Proposition 209, and the cont
  
 ## 2. If we did not know about instrumental variables, the basic observational regression we might run is to examine directly how the treatment variable is related to the outcome variable. Run this basic observational regression and interpret the results. *NB:(The outcome variable is anordered categorical variable - feel free to use either an ordered multinomial logit model or a simple linear OLS regression for all the questions, it doesn’t make much difference to the results)* 
 
+Running an OLS only with treatment and outcome, we would say that watching the program significantly (at 99% confidence level) increases the information on the proposition, adding 0.296 at the information level. 
+
 ```{r echo=F,message=F,warning=F, results='asis'}
 data%>%
-  mutate(Info_Proposition=as.numeric(Info_Proposition)) %>%
- zelig(Info_Proposition ~ Watched_Program,
-                     data = ., model = "normal",cite = F) %>%
-  from_zelig_model()%>%
-  stargazer(keep = c("Constant","Watched_Program"))
+ lm(Info_Proposition ~ Watched_Program,
+                     data = .) %>%
+  stargazer(header=F,no.space = T)
 ```
 
 
 ## 3. Do you trust the treatment effect estimates from Q2? What are the major threats to causal inference here? Provide concrete examples if why the estimate in Q2 might be wrong.
 
+The results above can overestimated by those respondents who always watches TV shows on politics, and these people are usually more educated and already well informed. This means that we're estimating the effect on different people given the treatment (watching the program) wasn't completely randomized.
+
+
 ## 4. To conduct an Instrumental Variables analysis, we first need to make sure we have a strong‘first stage’, i.e. that our instrument (encouragement to watch the program in the phone call)predicts our treatment variable (watching the program). Using a simple regression, what is the evidence about the strength of our first stage?
+
+The encouragement to watch received by the treatment group seems to be a good predictor of watching TV, incresing it by 0.407 and significant at 1% level. 
+
+Also, our F-Statistics is above 10, which is rule of thumb for considering the first stage IV estimation significant (Staiger and Stock, 1997)
+
+```{r echo=F,message=F,warning=F, results='asis'}
+first.stage <-data%>%
+lm(Watched_Program ~ Encouraged_to_Watch,
+                     data = .)
+
+stargazer(first.stage, header=F,no.space = T)
+```
+
 
 ## 5. Now let’s perform the 2-Stage Least Squares instrumental variables methodology. First,save the fitted values of the first stage regression from Q4 as another column in your data.
 
+```{r echo=F,message=F,warning=F}
+data <- data %>%
+mutate(watched_fitted = first.stage[["fitted.values"]])
+glimpse(data)
+```
+
 ## 6. Next, run the second-stage regression of the outcome variable on those fitted values from Q5. Carefully interpret the Instrumental Variables regression result.
+
+There's no significant effect on the respondent information level about the proposition between those who watched the program only because of the encouragement. In other words, the average treatment effect among compliers isn't statistically different from zero, so we can't say there's a positive effect on proposition information due to watching the TV program about it.
+
+```{r echo=F,message=F,warning=F, results='asis'}
+data %>%
+  lm(Info_Proposition ~ watched_fitted,
+                     data = .) %>%
+stargazer(header=F,no.space = T)
+```
+
+ 
 
 ## 7. The only disadvantage of the 2-Stage Least Squares approach is that it doesn’t correctly estimate the standard errors for our estimated treatment effect. Conduct the equivalent all-in-one IV approach to the previous analysis using ivreg in the AER library in R or ivreg2 in Stata.
 
-## 8. A crucial assumption for the instrumental variables regression is the exclusion restriction: that the instrument ONLY affects the outcome through the treatment, and not through anyother mechanism. We have to support this assumption by theory and supportive qualitative evidence as it cannot be empirically verified. Make the argument that the encouragement to watch the program through the phone call ONLY affects participants’ information about the proposition through its affect on watching the program.1
+Even with smaller standard errors, the interpretation remains the same from Q6.
+
+```{r echo=F,message=F,warning=F, results='asis'}
+data %>%
+  ivreg(Info_Proposition ~ Watched_Program | Encouraged_to_Watch,
+                     data = .) %>%
+stargazer(header=F,no.space = T)
+```
+
+## 8. A crucial assumption for the instrumental variables regression is the exclusion restriction: that the instrument ONLY affects the outcome through the treatment, and not through any other mechanism. We have to support this assumption by theory and supportive qualitative evidence as it cannot be empirically verified. Make the argument that the encouragement to watch the program through the phone call ONLY affects participants’ information about the proposition through its affect on watching the program.
+
+
 
 
 ## 9. Now pretend you are a reviewer/critic and make the argument that the exclusion restriction assumption is likely to be false.
+
+The authors don't explicitly tells us the content of the phone call received by the respondents. How did they tell people about the second interview? Was it mentioned it would be after the elections, or a general "we'll contact you latter"? People might have been induced to get (more) informed on the elections if they were said they would be contacted after it, including the control group. This could have induced a social desirability bias to be able to answer about the elections.
+
+Given the program the treated group should watch was on Fox News, the viewers attitude towards it carries their different opinion around this channel. This can induce then to watch something else instead or in addition to. This could also have increased their curiosity about other TV programs about the elections and the proposition, getting even more informed - specially if the call was made with sufficient time ahead of the elections.
+
+
 
 ## 10. The authors’ analysis in Table 4 is more complicated than ours only because it includes control variables in an attempt to make sure the instrument satisfies the exclusion restriction.Add the control variables to both the first and second stage 2SLS methodology regressions and interpret the results (it will be slightly different from the values in Table 4).
 
