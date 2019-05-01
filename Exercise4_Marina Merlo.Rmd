@@ -105,7 +105,7 @@ stargazer(header=F,no.space = T)
 
 ## 8. A crucial assumption for the instrumental variables regression is the exclusion restriction: that the instrument ONLY affects the outcome through the treatment, and not through any other mechanism. We have to support this assumption by theory and supportive qualitative evidence as it cannot be empirically verified. Make the argument that the encouragement to watch the program through the phone call ONLY affects participants’ information about the proposition through its affect on watching the program.
 
-
+The phone call didn't mention the proposition, so people only had (extra) contact with the issue during the TV program. There's no obvious hint that people should get to look into the proposition matter besides their current level of information/attitude about it.
 
 
 ## 9. Now pretend you are a reviewer/critic and make the argument that the exclusion restriction assumption is likely to be false.
