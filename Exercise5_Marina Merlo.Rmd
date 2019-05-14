@@ -93,7 +93,7 @@ data <- data2000 %>%
 
 Considering only the PMDB candidates, there's an increase of 1.7% in the vote share for the incumbents, significant at 5% level. This means that for the PMDB candidates there's a positive incumbent effect. 
 
-```{r,echo=FALSE, warning=F, message=F,cache=TRUE,results='asis'}
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
 data %>%
   filter(SIGLA_PARTIDO == "PMDB") %>%
   lm(voteshare04 ~ incumbency,
@@ -102,11 +102,27 @@ data %>%
 
 ```
 
-## 6.  Before implementing any regression discontinuities, let’s check for balance around the discontinuity. Within a +/-1% winning margin in 2000 check the balance of the total number of voters in treated and control municipalities in 2000 (we created this variable in Q2). Comparethis to the balance for a winning margin of +/-3%.
+## 6.  Before implementing any regression discontinuities, let’s check for balance around the discontinuity. Within a +/-1% winning margin in 2000 check the balance of the total number of voters in treated and control municipalities in 2000 (we created this variable in Q2). Compare this to the balance for a winning margin of +/-3%.
 
+The difference between treated (incumbent) and not treated in the number of voters is really close within the 1% margin - incumbents receive only 64 more votes than not incumbents, on average. However, within the 3% margin, this difference increase to 211 more votes for the incumbent, on average.
 
+```{r,echo=FALSE, warning=F, message=F}
 
-## 7. Next, check for sorting and manipulation of the threshold with the McCrary density testusing therddensityfunction.  Interpret the results and produce a density plot using therdplotdensity.
+data %>%
+ filter(win_margin <= 0.01 & win_margin >= -0.01) %>%
+  group_by(incumbency) %>%
+  summarise(mean = mean(QTDE_VOTOS,na.rm = T)) %>%
+ kable(digits = 3,caption = "+/-1% winning margin 2004 voters mean")
+
+data %>%
+ filter(win_margin <= 0.03 & win_margin >= -0.03) %>%
+  group_by(incumbency) %>%
+  summarise(mean = mean(QTDE_VOTOS,na.rm = T)) %>%
+ kable(digits = 3,caption = "+/-3% winning margin 2004 voters mean")
+
+```
+
+## 7. Next, check for sorting and manipulation of the threshold with the McCrary density test using the rddensity function.  Interpret the results and produce a density plot using the rdplotdensity.
 
 ## 8. Before we run the analysis, let’s construct a regression discontinuity plot to visually inspectthe causal effect of incumbency at the threshold. Using a pre-packaged command likerdplotfrom therdrobustpackage, create a regression discontinuity plot for the effect of incumbencyin 2000 on vote share in 2004 for the PMDB. Use linear regression lines. Interpret the results.
 
