@@ -37,9 +37,9 @@ library(rddensity)
 
 ```{r,echo=FALSE, warning=F, message=F}
 data2000 <- cepespR::get_elections(year=2000, position="Prefeito", regional_aggregation="Municipality", political_aggregation="Partido") %>%
-  filter(NUM_TURNO == 1) #%>%
+  filter(NUM_TURNO == 1) %>%
   group_by(COD_MUN_IBGE)%>%
-  mutate(totvotos = sum(QTDE_VOTOS)) %>%
+  mutate(totvotos00 = sum(QTDE_VOTOS)) %>%
   ungroup() %>%
   rowwise() %>%
   mutate(voteshare00 = QTDE_VOTOS/totvotos00) %>%
@@ -52,13 +52,27 @@ data2000 <- cepespR::get_elections(year=2000, position="Prefeito", regional_aggr
   mutate(win_margin = ifelse(rank_2000 == 1,
                              voteshare00 - second_rank_vote_pct,
                              voteshare00 - first_rank_vote_pct)) %>%
-  filter(win_margin != 0)
+  filter(win_margin != 0) %>%
+  ungroup()
+
+glimpse(data2000)
   
-
-
 ```
 
 ## 3. Preparing the 2004 dataset
+
+```{r,echo=FALSE, warning=F, message=F}
+data2004 <- cepespR::get_elections(year=2004, position="Prefeito", regional_aggregation="Municipality", political_aggregation="Partido") %>%
+  filter(NUM_TURNO == 1) %>%
+  group_by(COD_MUN_IBGE)%>%
+  mutate(totvotos04 = sum(QTDE_VOTOS)) %>%
+  ungroup() %>%
+  rowwise() %>%
+  mutate(voteshare04 = QTDE_VOTOS/totvotos04) %>%
+  dplyr::select(COD_MUN_IBGE,NUMERO_PARTIDO,voteshare04)
+
+glimpse(data2004)
+```
 
 ## 4. Join the two datasets (2000 and 2004 for all parties) based on the municipality (COD_MUN_IBGE)and party (NUMERO_PARTIDO) so that for every party that ran in both 2000 and 2004 we know what vote share they got in 2004. (What type of join do we want here? Left, Right, Inner?)
 
