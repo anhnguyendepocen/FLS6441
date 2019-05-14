@@ -35,8 +35,11 @@ library(rddensity)
 
 ## 1. and 2. Preparing the 2000 dataset
 
-```{r,echo=FALSE, warning=F, message=F}
-data2000 <- cepespR::get_elections(year=2000, position="Prefeito", regional_aggregation="Municipality", political_aggregation="Partido") %>%
+```{r,echo=T, warning=F, message=F,cache=TRUE}
+data2000 <- cepespR::get_elections(year=2000, 
+                                   position="Prefeito", 
+                                   regional_aggregation="Municipality",
+                                   political_aggregation="Partido") %>%
   filter(NUM_TURNO == 1) %>%
   group_by(COD_MUN_IBGE)%>%
   mutate(totvotos00 = sum(QTDE_VOTOS)) %>%
@@ -53,16 +56,18 @@ data2000 <- cepespR::get_elections(year=2000, position="Prefeito", regional_aggr
                              voteshare00 - second_rank_vote_pct,
                              voteshare00 - first_rank_vote_pct)) %>%
   filter(win_margin != 0) %>%
+  mutate(incumbency = ifelse(rank_2000 == 1, "1", "0")) %>%
   ungroup()
 
-glimpse(data2000)
-  
 ```
 
 ## 3. Preparing the 2004 dataset
 
-```{r,echo=FALSE, warning=F, message=F}
-data2004 <- cepespR::get_elections(year=2004, position="Prefeito", regional_aggregation="Municipality", political_aggregation="Partido") %>%
+```{r,echo=T, warning=F, message=F,cache=T}
+data2004 <- cepespR::get_elections(year=2004, 
+                                   position="Prefeito", 
+                                   regional_aggregation="Municipality",
+                                   political_aggregation="Partido") %>%
   filter(NUM_TURNO == 1) %>%
   group_by(COD_MUN_IBGE)%>%
   mutate(totvotos04 = sum(QTDE_VOTOS)) %>%
@@ -71,14 +76,35 @@ data2004 <- cepespR::get_elections(year=2004, position="Prefeito", regional_aggr
   mutate(voteshare04 = QTDE_VOTOS/totvotos04) %>%
   dplyr::select(COD_MUN_IBGE,NUMERO_PARTIDO,voteshare04)
 
-glimpse(data2004)
 ```
 
 ## 4. Join the two datasets (2000 and 2004 for all parties) based on the municipality (COD_MUN_IBGE)and party (NUMERO_PARTIDO) so that for every party that ran in both 2000 and 2004 we know what vote share they got in 2004. (What type of join do we want here? Left, Right, Inner?)
 
+We do a left join, so we keep all the observations from 2000 and only add the 2004 vote share for each observation.
+
+```{r,echo=FALSE, warning=F, message=F,cache=TRUE}
+data <- data2000 %>%
+  left_join(data2004)
+
+```
+
+
 ##5. If we did not know about regression discontinuity we might run the observational OLS regression of 2004 vote share on incumbency in 2000. For the next set of questions we will focus only on the PMDB. Subset the data so it includes only the PMDB, run and interpret this regression.
 
-## 6.  Before implementing any regression discontinuities, let’s check for balance around thediscontinuity. Within a +/-1% winning margin in 2000 check the balance of the total number ofvoters in treated and control municipalities in 2000 (we created this variable in Q2). Comparethis to the balance for a winning margin of +/-3%.
+Considering only the PMDB candidates, there's an increase of 1.7% in the vote share for the incumbents, significant at 5% level. This means that for the PMDB candidates there's a positive incumbent effect. 
+
+```{r,echo=FALSE, warning=F, message=F,cache=TRUE,results='asis'}
+data %>%
+  filter(SIGLA_PARTIDO == "PMDB") %>%
+  lm(voteshare04 ~ incumbency,
+                     data = .)%>%
+  stargazer(header=F,no.space = T)
+
+```
+
+## 6.  Before implementing any regression discontinuities, let’s check for balance around the discontinuity. Within a +/-1% winning margin in 2000 check the balance of the total number of voters in treated and control municipalities in 2000 (we created this variable in Q2). Comparethis to the balance for a winning margin of +/-3%.
+
+
 
 ## 7. Next, check for sorting and manipulation of the threshold with the McCrary density testusing therddensityfunction.  Interpret the results and produce a density plot using therdplotdensity.
 
