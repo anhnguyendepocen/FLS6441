@@ -1,0 +1,87 @@
+---
+title: "Replication 5 - Discontinuities"
+author: "Marina Merlo"
+date: "14 de maio de 2019"
+output: pdf_document
+---
+
+```{r, echo=FALSE, warning=F, message=F}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(data.table)
+library(effects)
+library(MASS)
+library(Zelig)
+library(ZeligChoice)
+library(estimatr)
+library(stargazer)
+library(float)
+library(pander)
+library(texreg)
+library(plm)
+library(RCurl)
+library(gdata) 
+library(zoo)
+library(gridExtra)
+library(AER)
+#if (!require("devtools")) install.packages("devtools")
+#devtools::install_github("Cepesp-Fgv/cepesp-r")
+library(cepespR)
+library(rdrobust)
+library(rddensity)
+```
+
+
+## 1. and 2. Preparing the 2000 dataset
+
+```{r,echo=FALSE, warning=F, message=F}
+data2000 <- cepespR::get_elections(year=2000, position="Prefeito", regional_aggregation="Municipality", political_aggregation="Partido") %>%
+  filter(NUM_TURNO == 1) #%>%
+  group_by(COD_MUN_IBGE)%>%
+  mutate(totvotos = sum(QTDE_VOTOS)) %>%
+  ungroup() %>%
+  rowwise() %>%
+  mutate(voteshare00 = QTDE_VOTOS/totvotos00) %>%
+  group_by(COD_MUN_IBGE) %>%
+  mutate(rank_2000 = rank(-QTDE_VOTOS)) %>%
+  filter(rank_2000 %in% c(1,2)) %>%
+  arrange(COD_MUN_IBGE, rank_2000) %>%
+  mutate(first_rank_vote_pct = max(voteshare00),
+         second_rank_vote_pct = nth(voteshare00,2)) %>%
+  mutate(win_margin = ifelse(rank_2000 == 1,
+                             voteshare00 - second_rank_vote_pct,
+                             voteshare00 - first_rank_vote_pct)) %>%
+  filter(win_margin != 0)
+  
+
+
+```
+
+## 3. Preparing the 2004 dataset
+
+## 4. Join the two datasets (2000 and 2004 for all parties) based on the municipality (COD_MUN_IBGE)and party (NUMERO_PARTIDO) so that for every party that ran in both 2000 and 2004 we know what vote share they got in 2004. (What type of join do we want here? Left, Right, Inner?)
+
+##5. If we did not know about regression discontinuity we might run the observational OLS regression of 2004 vote share on incumbency in 2000. For the next set of questions we will focus only on the PMDB. Subset the data so it includes only the PMDB, run and interpret this regression.
+
+## 6.  Before implementing any regression discontinuities, let’s check for balance around thediscontinuity. Within a +/-1% winning margin in 2000 check the balance of the total number ofvoters in treated and control municipalities in 2000 (we created this variable in Q2). Comparethis to the balance for a winning margin of +/-3%.
+
+## 7. Next, check for sorting and manipulation of the threshold with the McCrary density testusing therddensityfunction.  Interpret the results and produce a density plot using therdplotdensity.
+
+## 8. Before we run the analysis, let’s construct a regression discontinuity plot to visually inspectthe causal effect of incumbency at the threshold. Using a pre-packaged command likerdplotfrom therdrobustpackage, create a regression discontinuity plot for the effect of incumbencyin 2000 on vote share in 2004 for the PMDB. Use linear regression lines. Interpret the results.
+
+## 9. Create a second regression discontinuity plot with fourth-order polynomial regression lines.
+
+## 10. We will now implement four alternative specifications of the same regression discontinuity.For the first version of the analysis, implement a simple difference-in-means test comparingthe average vote share received by the PMDB in 2004 within a bandwidth of +/-3% winningmargin in 2000. Interpret these results and compare to the observational regression in Q5.
+
+## 11. For the second version, implement the full-data regression discontinuity analysis. Interpretthis regression and compare it to your results in Q10.
+
+## 12. For the third version, implement the limited-bandwidth regression discontinuity analysisfor a bandwidth of +/-3%. Interpret this regression and compare it to your results in Q10and Q11.
+
+## 13. Fourth, let’s implement the optimal-bandwidth linear regression discontinuity using therdrobustcommand. What bandwidth was selected? How do the results compare to the othermethodologies?
+
+## 14. Now let’s try to adjust the functional form used to estimate the effect of the rnuningvariable. Implement the optimal-bandwidth regression discontinuity but with a second-orderpolynomial (quadratic) trend. Also try a third-order polynomial (cubic) trend and assess thesensitivity of the results.
+
+## 15. The Mayor of a small municipality calls you for political advice. He wants to know whatvote share his party (the PMDB) is likely to receive in the next election. He is very confidentbecause at the last election he won easily with a winning margin of 30%. Based on the evidenceyou have recorded above from the regression discontinuities, how would you advise the Mayorabout his likely performance in the next election?
+
+## 16. Choose your preferred specification and implement the regression discontinuity for theother two parties: the PFL and the PSDB. How similar are your results to those in Titiunik(2011) for the +/-3% window?
