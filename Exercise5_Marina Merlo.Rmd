@@ -157,7 +157,7 @@ Even with the fourth-order polynomial regression line, the discontinuity around 
 
 ## 10. We will now implement four alternative specifications of the same regression discontinuity.For the first version of the analysis, implement a simple difference-in-means test comparing the average vote share received by the PMDB in 2004 within a bandwidth of +/-3% winning margin in 2000. Interpret these results and compare to the observational regression in Q5.
 
-The difference in the vote share in 2004 between incumbents and challengers for PMDB candidates is different from zero at 1% significance level
+The difference in the vote share in 2004 between incumbents and challengers for PMDB candidates is different from zero at 1% significance level. Now that we limited our observations for those with +/-3% winning margin, the incumbent effect seen in Q6 becomes negative: incumbents receive 42,8% votes on average while challengers get 48,2%, a difference of 5,4%. 
 
 ```{r,echo=FALSE, warning=F, message=F}
 
@@ -167,14 +167,65 @@ data %>%
   t.test(voteshare04~incumbency,data=.)
 ```
 
-## 11. For the second version, implement the full-data regression discontinuity analysis. Interpretthis regression and compare it to your results in Q10.
+## 11. For the second version, implement the full-data regression discontinuity analysis. Interpret this regression and compare it to your results in Q10.
 
-## 12. For the third version, implement the limited-bandwidth regression discontinuity analysisfor a bandwidth of +/-3%. Interpret this regression and compare it to your results in Q10and Q11.
+The full RDD for the PMDB candidates show a negative incubency effect of 4,8% in the 2004 votshare. This is slightly smaller than the t.test because now we're accounting for the effect of the running variable on the outcome. 
 
-## 13. Fourth, let’s implement the optimal-bandwidth linear regression discontinuity using therdrobustcommand. What bandwidth was selected? How do the results compare to the othermethodologies?
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+data %>%
+  filter(SIGLA_PARTIDO == "PMDB") %>%
+  lm(voteshare04 ~ incumbency + win_margin, data=.)%>%
+  stargazer(header=F,no.space = T)
+```
 
-## 14. Now let’s try to adjust the functional form used to estimate the effect of the rnuningvariable. Implement the optimal-bandwidth regression discontinuity but with a second-orderpolynomial (quadratic) trend. Also try a third-order polynomial (cubic) trend and assess thesensitivity of the results.
+## 12. For the third version, implement the limited-bandwidth regression discontinuity analysis for a bandwidth of +/-3%. Interpret this regression and compare it to your results in Q10 and Q11.
 
-## 15. The Mayor of a small municipality calls you for political advice. He wants to know whatvote share his party (the PMDB) is likely to receive in the next election. He is very confidentbecause at the last election he won easily with a winning margin of 30%. Based on the evidenceyou have recorded above from the regression discontinuities, how would you advise the Mayorabout his likely performance in the next election?
+The negative effect of incumbency now it's even smaller, with a loss of 2.9% of vote share. Our observation number dropped to 236 when filtering for only those within the bandwidth of +/-3%, but we have less bias from the candidates that won or lost from a larger margin.
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+data %>%
+  filter(SIGLA_PARTIDO == "PMDB") %>%
+  filter(win_margin <= 0.03 & win_margin >= -0.03) %>%
+  lm(voteshare04 ~ incumbency + win_margin, data=.)%>%
+  stargazer(header=F,no.space = T)
+```
+
+## 13. Fourth, let’s implement the optimal-bandwidth linear regression discontinuity using the rdrobust command. What bandwidth was selected? How do the results compare to the other methodologies?
+
+The selected bandwidth was +/-13.5% winning margin. The results are closer to those of the t.test, estimating a negative effect of 5.6% for the incumbent 
+
+```{r,echo=FALSE, warning=F, message=F}
+summary(rdrobust(data$voteshare04[data$SIGLA_PARTIDO == "PMDB"],data$win_margin[data$SIGLA_PARTIDO == "PMDB"]))
+```
+
+## 14. Now let’s try to adjust the functional form used to estimate the effect of the running variable. Implement the optimal-bandwidth regression discontinuity but with a second-order polynomial (quadratic) trend. Also try a third-order polynomial (cubic) trend and assess the sensitivity of the results.
+
+
+```{r,echo=FALSE, warning=F, message=F}
+summary(rdrobust(data$voteshare04[data$SIGLA_PARTIDO == "PMDB"],data$win_margin[data$SIGLA_PARTIDO == "PMDB"],p=2))
+
+summary(rdrobust(data$voteshare04[data$SIGLA_PARTIDO == "PMDB"],data$win_margin[data$SIGLA_PARTIDO == "PMDB"],p=4))
+```
+
+## 15. The Mayor of a small municipality calls you for political advice. He wants to know what vote share his party (the PMDB) is likely to receive in the next election. He is very confident because at the last election he won easily with a winning margin of 30%. Based on the evidence you have recorded above from the regression discontinuities, how would you advise the Mayor about his likely performance in the next election?
+
+Considering the results from 2000-2004 can be extrapolated to nowadays disputes, his performance will most likely be successful - considering the full RD results, his vote share will be
 
 ## 16. Choose your preferred specification and implement the regression discontinuity for theother two parties: the PFL and the PSDB. How similar are your results to those in Titiunik(2011) for the +/-3% window?
+
+The results are different in the magnitude, but point towards the same interpretation: the incumbency effect is negative for PFL, but positive for PSDB in the +/-3% window. This means there's need to further investigation of specific effects for each party. 
+
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+pfl <- data %>%
+  filter(SIGLA_PARTIDO == "PFL") %>%
+  filter(win_margin <= 0.03 & win_margin >= -0.03) %>%
+  lm(voteshare04 ~ incumbency + win_margin, data=.)
+
+psdb <- data %>%
+  filter(SIGLA_PARTIDO == "PSDB") %>%
+  filter(win_margin <= 0.03 & win_margin >= -0.03) %>%
+  lm(voteshare04 ~ incumbency + win_margin, data=.)
+
+  stargazer(pfl,psdb,header=F,no.space = T,column.labels=c('PFL','PSDB'))
+```
