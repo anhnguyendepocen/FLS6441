@@ -49,15 +49,17 @@ data2000 <- cepespR::get_elections(year=2000,
   group_by(COD_MUN_IBGE) %>%
   mutate(rank_2000 = rank(-QTDE_VOTOS)) %>%
   filter(rank_2000 %in% c(1,2)) %>%
+  mutate(incumbency = ifelse(rank_2000 == 1, "1", "0")) %>%
   arrange(COD_MUN_IBGE, rank_2000) %>%
   mutate(first_rank_vote_pct = max(voteshare00),
-         second_rank_vote_pct = nth(voteshare00,2)) %>%
+         second_rank_vote_pct = nth(voteshare00,2),
+         first_rank_vote = max(QTDE_VOTOS),
+         second_rank_vote = nth(QTDE_VOTOS,2)) %>%
   mutate(win_margin = ifelse(rank_2000 == 1,
                              voteshare00 - second_rank_vote_pct,
                              voteshare00 - first_rank_vote_pct)) %>%
-  filter(win_margin != 0) %>%
-  mutate(incumbency = ifelse(rank_2000 == 1, "1", "0")) %>%
-  ungroup()
+  filter(first_rank_vote != second_rank_vote) %>%
+    ungroup()
 
 ```
 
@@ -124,11 +126,46 @@ data %>%
 
 ## 7. Next, check for sorting and manipulation of the threshold with the McCrary density test using the rddensity function.  Interpret the results and produce a density plot using the rdplotdensity.
 
-## 8. Before we run the analysis, let’s construct a regression discontinuity plot to visually inspectthe causal effect of incumbency at the threshold. Using a pre-packaged command likerdplotfrom therdrobustpackage, create a regression discontinuity plot for the effect of incumbencyin 2000 on vote share in 2004 for the PMDB. Use linear regression lines. Interpret the results.
+The number of observations is evenly distributed around the cutoff. The indicated bandwidth is at 0.099%.
+The plot shows that there were no manipulation from the units to be under or above the cutoff. 
+
+
+```{r echo=F, message=F, warning=F,out.width = '50%',fig.align='center'}
+denso <- rddensity(data$win_margin)
+summary(denso)
+rdplotdensity(denso,data$win_margin)
+
+```
+
+## 8. Before we run the analysis, let’s construct a regression discontinuity plot to visually inspect the causal effect of incumbency at the threshold. Using a pre-packaged command like rdplot from the rdrobust package, create a regression discontinuity plot for the effect of incumbencyin 2000 on vote share in 2004 for the PMDB. Use linear regression lines. Interpret the results.
+
+There's a small discontinuity around the cutoff, with lower vote shares for the incumbents.
+
+```{r echo=F, message=F, warning=F,out.width = '70%',fig.align='center'}
+  rdplot(data$voteshare04[data$SIGLA_PARTIDO == "PMDB"], data$win_margin[data$SIGLA_PARTIDO == "PMDB"],p=1)
+
+```
 
 ## 9. Create a second regression discontinuity plot with fourth-order polynomial regression lines.
 
-## 10. We will now implement four alternative specifications of the same regression discontinuity.For the first version of the analysis, implement a simple difference-in-means test comparingthe average vote share received by the PMDB in 2004 within a bandwidth of +/-3% winningmargin in 2000. Interpret these results and compare to the observational regression in Q5.
+Even with the fourth-order polynomial regression line, the discontinuity around the cutoff remains. This means the difference seen 0 isn't due the data distribution.
+
+```{r echo=F, message=F, warning=F,out.width = '70%',fig.align='center'}
+  rdplot(data$voteshare04[data$SIGLA_PARTIDO == "PMDB"], data$win_margin[data$SIGLA_PARTIDO == "PMDB"],p=4)
+
+```
+
+## 10. We will now implement four alternative specifications of the same regression discontinuity.For the first version of the analysis, implement a simple difference-in-means test comparing the average vote share received by the PMDB in 2004 within a bandwidth of +/-3% winning margin in 2000. Interpret these results and compare to the observational regression in Q5.
+
+The difference in the vote share in 2004 between incumbents and challengers for PMDB candidates is different from zero at 1% significance level
+
+```{r,echo=FALSE, warning=F, message=F}
+
+data %>%
+  filter(SIGLA_PARTIDO == "PMDB") %>%
+  filter(win_margin <= 0.03 & win_margin >= -0.03) %>%
+  t.test(voteshare04~incumbency,data=.)
+```
 
 ## 11. For the second version, implement the full-data regression discontinuity analysis. Interpretthis regression and compare it to your results in Q10.
 
