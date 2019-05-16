@@ -49,3 +49,49 @@ data %>%
   filter(t %in% c(1,2)) %>%
   group_by(D,t)%>%
   summarise(mean = mean(yobs))
+
+difD1 <- 58.0 - 55.0 
+difD0 <- 56.1 - 58.2
+
+difindif <- difD1-difD0
+difindif
+
+#11
+data %>%
+  filter(t %in% c(0,1)) %>%
+  lm_robust(yobs ~ D + t + D*t, data = ., clusters = municipality) %>%
+  summary()
+
+#12
+data%>%
+  group_by(D,t)%>%
+  summarise(meanyobs = mean(yobs))%>%
+  ggplot(., aes(x=t, y=meanyobs, colour=as.factor(D))) +
+  geom_line()+
+  theme_minimal()
+
+
+#13
+
+data2 <- data.frame(oil = rbinom(5570,1,0.5)) %>%
+  mutate(municipality = row_number()) %>%
+  slice(rep(1:n(), each = 3)) %>%
+  cbind(data.frame(t=c(0,1,2))) %>%
+  mutate(y0 = rnorm(nrow(.),60,5) - 2*t*oil - 3*oil,
+         y1 = y0 + 5,
+         D = ifelse(oil==1,1,0),
+         yobs = ifelse((D==1 & t==2),y1,y0))
+
+#14
+data2%>%
+  group_by(D,t)%>%
+  summarise(meanyobs = mean(yobs))%>%
+  ggplot(., aes(x=t, y=meanyobs, colour=as.factor(D))) +
+  geom_line()+
+  theme_minimal()
+
+data2 %>%
+  filter(t %in% c(1,2)) %>%
+  lm_robust(yobs ~ D + t + D*t, data = ., clusters = municipality) %>%
+  summary()
+
