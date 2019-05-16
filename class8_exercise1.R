@@ -90,8 +90,27 @@ data2%>%
   geom_line()+
   theme_minimal()
 
+#checking effect - around 3, not 5
 data2 %>%
   filter(t %in% c(1,2)) %>%
   lm_robust(yobs ~ D + t + D*t, data = ., clusters = municipality) %>%
   summary()
+
+#checking parallels - there're no parallels after treatment (interaction term is significant)
+data2 %>%
+  filter(t %in% c(0,1)) %>%
+  lm_robust(yobs ~ D + t + D*t, data = ., clusters = municipality) %>%
+  summary()
+
+#means dif in dif - the effect is 3, not 5
+data2 %>%
+  filter(t %in% c(1,2)) %>%
+  group_by(D,t)%>%
+  summarise(mean = mean(yobs))
+
+difD1.2 <- 58.1 - 55.0 
+difD0.2 <- 60.0 - 59.9
+
+difindif2 <- difD1.2-difD0.2
+difindif2
 
