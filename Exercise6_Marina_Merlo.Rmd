@@ -148,6 +148,6 @@ data %>%
 The gain in the efficiency could have been driven by an increase in the economy performance, for example.
 
 
-## 10. One way of testing for the presence of time-varying confounders is to check that there are parallel pre-treatment trends in the outcomes for treated and control units. Using the second dataset,Vietnam0608.csv, and your main difference-in-differences regression, assess if treated units had a different trend to control units before treatment, i.e. between 2006 and 2008, foreach of the 6 outcome indices. This should replicate Panel 2 of Table 3 in Malesky et al.
+## 10. One way of testing for the presence of time-varying confounders is to check that there are parallel pre-treatment trends in the outcomes for treated and control units. Using the second dataset, Vietnam0608.csv, and your main difference-in-differences regression, assess if treated units had a different trend to control units before treatment, i.e. between 2006 and 2008, for each of the 6 outcome indices. This should replicate Panel 2 of Table 3 in Malesky et al.
 
-## 11. Create a Difference-in-differences chart showing the average Infrastructure Index outcomeby treatment group between 2008 and 2010. Compare this to the same chart between 2006and 2008.  What do these charts suggest about the validity of our difference-in-differences methodology?
+## 11. Create a Difference-in-differences chart showing the average Infrastructure Index outcome by treatment group between 2008 and 2010. Compare this to the same chart between 2006 and 2008.  What do these charts suggest about the validity of our difference-in-differences methodology?
