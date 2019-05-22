@@ -3,6 +3,7 @@ title: "Replication 6 - Difference-in-Differences"
 author: "Marina Merlo"
 date: "22 de maio de 2019"
 output: pdf_document
+
 ---
 
 ```{r, echo=FALSE, warning=F, message=F}
@@ -41,7 +42,7 @@ The results show there's no significant impact of the treatment on the infrastru
 data %>%
   lm(index_infra ~ treatment,
                      data = .)%>%
-  stargazer(header=F,no.space = T)
+  stargazer(header=F,no.space = T,font.size = "small")
 
 ```
 
@@ -54,7 +55,7 @@ data %>%
   filter(treatment == 1) %>%
   lm(index_infra ~ time,
                      data = .)%>%
-  stargazer(header=F,no.space = T)
+  stargazer(header=F,no.space = T,font.size = "small")
 
 ```
 
@@ -66,25 +67,72 @@ Our average treatment effect is the coefficient of the interaction term between 
 data %>%
   lm(index_infra ~ time + treatment + time*treatment,
                      data = .)%>%
-  stargazer(header=F,no.space = T)
+  stargazer(header=F,no.space = T,font.size = "small")
 
 ```
 
 ## 5. Repeat Q4 but now add the control variables (lnarea,lnpopden,city, and Region fixed effects)used in Table 3 of Malesky et al. Compare your answers to those in Table 3.
 
-There're small differences from the results in Table 3 and the ones below, but the interpretation remains the same. Our ATE is 0.227 and in Malesky et al., 0.225, both significant at 5% level. 
+There're small differences from the results in Table 3 in the paper and the ones below, but the interpretation remains the same. Our ATE is 0.227 and in Malesky et al., 0.225, both significant at 5% level. 
 
 ```{r,echo=FALSE, warning=F, message=F,results='asis'}
 data %>%
   lm(index_infra ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
                      data = .)%>%
-  stargazer(header=F,no.space = T)
+  stargazer(header=F,no.space = T,font.size = "small")
 
 ```
 
 ## 6. Repeat Q5 but now with clustered standard errors at the District level. How does this alter your results?
 
-## 7. Replicate all of the columns of Table 3 of Malesky et al.8. Assess the balance in land area (totalland) of the treated and control units in timet= 0.Focus on the substantive difference, not the p-value. Is there are any evidence of imbalance? Would this create a risk of bias for our difference-in-differences analysis?
+There's an incrase in our standard errors and our ATE now is significant at 10%. 
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+
+#removing the 3 rows with NA in lnpopden that causes error in the clustered SEs estimation in stargazer
+data2 <- data %>%
+  filter(!is.na(lnpopden))
+
+reg1 <- data2 %>%
+  lm(index_infra ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+
+stargazer(reg1,se=starprep(reg1,clusters = data2$District), header=F,no.space = T,font.size = "small")
+
+```
+
+## 7. Replicate all of the columns of Table 3 of Malesky et al.
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+
+reg2 <- data2 %>%
+  lm(index_agric ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg3 <- data2 %>%
+  lm(index_health ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg4 <- data2 %>%
+  lm(index_education ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg5 <- data2 %>%
+  lm(index_comms ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg6 <- data2 %>%
+  lm(index_bus_dev ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+
+stargazer(reg1,reg2,reg3,reg4,reg5,reg6,se=starprep(reg1,reg2,reg3,reg4,reg5,reg6,clusters = data2$District), header=F,no.space = T,column.sep.width = "2pt",font.size = "scriptsize")
+
+```
+
+(see Table 6 below)
+
+## 8. Assess the balance in land area (totalland) of the treated and control units in timet= 0.Focus on the substantive difference, not the p-value. Is there are any evidence of imbalance? Would this create a risk of bias for our difference-in-differences analysis?
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+
+
+```
 
 ## 9. Difference-in-differences methodology cannot protect us against time-varying confounders.Provide an example of an omitted (confounding) variable that might create bias in our results.
 
