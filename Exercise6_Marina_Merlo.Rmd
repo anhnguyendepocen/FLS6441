@@ -188,7 +188,7 @@ stargazer(reg12,reg7,reg8,reg9,reg10,reg11,se=starprep(reg12,reg7,reg8,reg9,reg1
 
 ## 11. Create a Difference-in-differences chart showing the average Infrastructure Index outcome by treatment group between 2008 and 2010. Compare this to the same chart between 2006 and 2008.  What do these charts suggest about the validity of our difference-in-differences methodology?
 
-The charts show there's no parallel lines for both periods, meaning the estimates from the diff-in-diff are not valid. 
+The charts show there's no parallel lines for both periods, meaning the estimates from the diff-in-diff might be questioned - even though the tests in Table 8 above shows they might be parallel 'enough' for the test.
 
 ```{r echo=F, message=F, warning=F,out.width = '55%',fig.align='center'}
 g1 <- data_last%>%
