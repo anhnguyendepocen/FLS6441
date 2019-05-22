@@ -35,7 +35,28 @@ The treatment is to have their District People's Council (DCP) abolished after 2
 
 ## 2. Run the ‘naive’ cross-sectional OLS regression of the infrastructure index (one of the 6 presented in Table 3 of Malesky et al) on treatment.  How do you interpret the results? Provide at least one specific reason why the treatment effect in your regression may be a biased estimate.
 
-## 3. Run the ‘naive’ before-after OLS regression of the infrastructure index on the time variable(1 for 2010, 0 for 2008) for the treated units only. How do you interpret the results? Provide atleast one specific reason why the treatment effect in your regression may be a biased estimate.
+The results show there's no significant impact of the treatment on the infrastructure index. However, this is a biased estimate because we're comparing treated units across time, even when they weren't treated yet. 
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+data %>%
+  lm(index_infra ~ treatment,
+                     data = .)%>%
+  stargazer(header=F,no.space = T)
+
+```
+
+## 3. Run the ‘naive’ before-after OLS regression of the infrastructure index on the time variable(1 for 2010, 0 for 2008) for the treated units only. How do you interpret the results? Provide at least one specific reason why the treatment effect in your regression may be a biased estimate.
+
+There's a positive and significant effect of 0.49 on the infrastructure index after the removal of the district council. This might be biased due other temporal changes and not only the treatment, such as an improvment on economy etc. 
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+data %>%
+  filter(treatment == 1) %>%
+  lm(index_infra ~ time,
+                     data = .)%>%
+  stargazer(header=F,no.space = T)
+
+```
 
 ## 4. Now perform the main Difference-in-differences analysis for the Infrastructure Index out-come. Don’t cluster your standard errors or include any control variables yet. Interpret theresults.
 
