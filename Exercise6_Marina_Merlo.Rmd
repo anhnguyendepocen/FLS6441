@@ -29,22 +29,24 @@ knitr::opts_chunk$set(echo = FALSE)
 data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_8/Replication/Vietnam0810.csv")
 ```
 
-## R Markdown
+## 1. What is treatment and control in this study? What is the treatment assignment mechanism?
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+The treatment is to have their District People's Council (DCP) abolished after 2009, the control is to still have it. The treatment assignment mechanism was designed by the Ministry Of Home Affairs through a stratified sample by region, sub-region and other characteristics.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+## 2. Run the ‘naive’ cross-sectional OLS regression of the infrastructure index (one of the 6 presented in Table 3 of Malesky et al) on treatment.  How do you interpret the results? Provide at least one specific reason why the treatment effect in your regression may be a biased estimate.
 
-```{r cars}
-summary(cars)
-```
+## 3. Run the ‘naive’ before-after OLS regression of the infrastructure index on the time variable(1 for 2010, 0 for 2008) for the treated units only. How do you interpret the results? Provide atleast one specific reason why the treatment effect in your regression may be a biased estimate.
 
-## Including Plots
+## 4. Now perform the main Difference-in-differences analysis for the Infrastructure Index out-come. Don’t cluster your standard errors or include any control variables yet. Interpret theresults.
 
-You can also embed plots, for example:
+## 5. Repeat Q4 but now add the control variables (lnarea,lnpopden,city, andRegionfixed effects)used in Table 3 of Malesky et al. Compare your answers to those in Table 3.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+## 6. Repeat Q5 but now with clustered standard errors at theDistrictlevel. How does this alter your results?
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## 7. Replicate all of the columns of Table 3 of Malesky et al.8. Assess the balance in land area (totalland) of the treated and control units in timet= 0.Focus on the substantive difference, not the p-value. Is there are any evidence of imbalance? Would this create a risk of bias for our difference-in-differences analysis?
+
+## 9. Difference-in-differences methodology cannot protect us against time-varying confounders.Provide an example of an omitted (confounding) variable that might create bias in our results.
+
+## 10. One way of testing for the presence of time-varying confounders is to check that there are parallel pre-treatment trendsin the outcomes for treated and control units. Using the second dataset,Vietnam0608.csv, and your main difference-in-differences regression, assess if treated units had a different trend to control units before treatment, i.e. between 2006 and 2008, foreach of the 6 outcome indices. This should replicate Panel 2 of Table 3 in Malesky et al.
+
+## 11. Create a Difference-in-differences chart showing the average Infrastructure Index outcomeby treatment group between 2008 and 2010. Compare this to the same chart between 2006and 2008.  What do these charts suggest about the validity of our difference-in-differences methodology?
