@@ -28,6 +28,7 @@ library(gridExtra)
  
 knitr::opts_chunk$set(echo = FALSE)
 data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_8/Replication/Vietnam0810.csv")
+
 ```
 
 ## 1. What is treatment and control in this study? What is the treatment assignment mechanism?
@@ -42,9 +43,10 @@ The results show there's no significant impact of the treatment on the infrastru
 data %>%
   lm(index_infra ~ treatment,
                      data = .)%>%
-  stargazer(header=F,no.space = T,font.size = "small")
+  stargazer(header=F,no.space = T,font.size = "scriptsize")
 
 ```
+.
 
 ## 3. Run the ‘naive’ before-after OLS regression of the infrastructure index on the time variable(1 for 2010, 0 for 2008) for the treated units only. How do you interpret the results? Provide at least one specific reason why the treatment effect in your regression may be a biased estimate.
 
@@ -55,9 +57,10 @@ data %>%
   filter(treatment == 1) %>%
   lm(index_infra ~ time,
                      data = .)%>%
-  stargazer(header=F,no.space = T,font.size = "small")
+  stargazer(header=F,no.space = T,font.size = "scriptsize")
 
 ```
+.
 
 ## 4. Now perform the main Difference-in-differences analysis for the Infrastructure Index out-come. Don’t cluster your standard errors or include any control variables yet. Interpret the results.
 
@@ -67,21 +70,23 @@ Our average treatment effect is the coefficient of the interaction term between 
 data %>%
   lm(index_infra ~ time + treatment + time*treatment,
                      data = .)%>%
-  stargazer(header=F,no.space = T,font.size = "small")
+  stargazer(header=F,no.space = T,font.size = "scriptsize")
 
 ```
+.
 
 ## 5. Repeat Q4 but now add the control variables (lnarea,lnpopden,city, and Region fixed effects)used in Table 3 of Malesky et al. Compare your answers to those in Table 3.
 
-There're small differences from the results in Table 3 in the paper and the ones below, but the interpretation remains the same. Our ATE is 0.227 and in Malesky et al., 0.225, both significant at 5% level. 
+There're small differences from the results in Table 3 in the paper and the ones below, but the interpretation remains the same. Our ATE is 0.227 and in Malesky et al., 0.225, both significant at 5% level. (see Table 4 below)
 
 ```{r,echo=FALSE, warning=F, message=F,results='asis'}
 data %>%
   lm(index_infra ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
                      data = .)%>%
-  stargazer(header=F,no.space = T,font.size = "small")
+  stargazer(header=F,no.space = T,font.size = "scriptsize")
 
 ```
+.
 
 ## 6. Repeat Q5 but now with clustered standard errors at the District level. How does this alter your results?
 
@@ -97,12 +102,12 @@ reg1 <- data2 %>%
   lm(index_infra ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
                      data = .)
 
-stargazer(reg1,se=starprep(reg1,clusters = data2$District), header=F,no.space = T,font.size = "small")
+stargazer(reg1,se=starprep(reg1,clusters = data2$District), header=F,no.space = T,font.size = "scriptsize")
 
 ```
 
 ## 7. Replicate all of the columns of Table 3 of Malesky et al.
-
+.
 ```{r,echo=FALSE, warning=F, message=F,results='asis'}
 
 reg2 <- data2 %>%
@@ -121,11 +126,11 @@ reg6 <- data2 %>%
   lm(index_bus_dev ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
                      data = .)
 
-stargazer(reg1,reg2,reg3,reg4,reg5,reg6,se=starprep(reg1,reg2,reg3,reg4,reg5,reg6,clusters = data2$District), header=F,no.space = T,column.sep.width = "2pt",font.size = "scriptsize")
+stargazer(reg1,reg2,reg3,reg4,reg5,reg6,se=starprep(reg1,reg2,reg3,reg4,reg5,reg6,clusters = data2$District), header=F,no.space = T,column.sep.width = "2pt",font.size = "tiny")
 
 ```
+.
 
-(see Table 6 below)
 
 ## 8. Assess the balance in land area (totalland) of the treated and control units in time t= 0.Focus on the substantive difference, not the p-value. Is there are any evidence of imbalance? Would this create a risk of bias for our difference-in-differences analysis?
 
@@ -143,6 +148,7 @@ data %>%
 
 ```
 
+
 ## 9. Difference-in-differences methodology cannot protect us against time-varying confounders.Provide an example of an omitted (confounding) variable that might create bias in our results.
 
 The gain in the efficiency could have been driven by an increase in the economy performance, for example.
@@ -150,4 +156,63 @@ The gain in the efficiency could have been driven by an increase in the economy 
 
 ## 10. One way of testing for the presence of time-varying confounders is to check that there are parallel pre-treatment trends in the outcomes for treated and control units. Using the second dataset, Vietnam0608.csv, and your main difference-in-differences regression, assess if treated units had a different trend to control units before treatment, i.e. between 2006 and 2008, for each of the 6 outcome indices. This should replicate Panel 2 of Table 3 in Malesky et al.
 
+There are some differences from this replication and the Panel 2 of Table 3 in the paper. In the paper, there seems to be no parallel pre-treatment trends for the infrastructure index (interaction term between treatment and time is significant at 1% level), while here it isn't significant. In this replication the only significant interaction term is for the agricultural index, at 10% level. 
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+
+data_last <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_8/Replication/Vietnam0608.csv") %>%
+  filter(!is.na(lnpopden))
+
+reg12 <- data_last %>%
+  lm(index_infra ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg7 <- data_last %>%
+  lm(index_agric ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg8 <- data_last %>%
+  lm(index_health ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg9 <- data_last %>%
+  lm(index_education ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg10 <- data_last %>%
+  lm(index_comms ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+reg11 <- data_last %>%
+  lm(index_bus_dev ~ time + treatment + time*treatment + lnarea + lnpopden + city + Region,
+                     data = .)
+
+stargazer(reg12,reg7,reg8,reg9,reg10,reg11,se=starprep(reg12,reg7,reg8,reg9,reg10,reg11,clusters = data_last$District), header=F,no.space = T,column.sep.width = "2pt",font.size = "tiny")
+
+```
+
 ## 11. Create a Difference-in-differences chart showing the average Infrastructure Index outcome by treatment group between 2008 and 2010. Compare this to the same chart between 2006 and 2008.  What do these charts suggest about the validity of our difference-in-differences methodology?
+
+The charts show there's no parallel lines for both periods, meaning the estimates from the diff-in-diff are not valid. 
+
+```{r echo=F, message=F, warning=F,out.width = '55%',fig.align='center'}
+g1 <- data_last%>%
+  group_by(time,treatment)%>%
+  summarise(mean_index = mean(index_infra))%>%
+  ggplot(., aes(x=time, y=mean_index, colour=as.factor(treatment))) +
+  geom_line()+
+  theme_minimal()+
+  ggtitle("2006-2008")+
+  theme(legend.position="bottom")+
+  ylim(2.75,3.5)
+
+g2 <- data%>%
+  group_by(time,treatment)%>%
+  summarise(mean_index = mean(index_infra))%>%
+  ggplot(., aes(x=time, y=mean_index, colour=as.factor(treatment))) +
+  geom_line()+
+  theme_minimal()+
+  ggtitle("2008-2010")+
+  theme(legend.position="bottom")+
+  ylim(2.75,3.5)
+
+grid.arrange(g1, g2, ncol=2)
+
+
+```
+
