@@ -85,7 +85,7 @@ data %>%
 
 ## 6. Repeat Q5 but now with clustered standard errors at the District level. How does this alter your results?
 
-There's an incrase in our standard errors and our ATE now is significant at 10%. 
+There's an incrase in our standard errors and our ATE now is significant at 10%. (see Table 5 below)
 
 ```{r,echo=FALSE, warning=F, message=F,results='asis'}
 
@@ -127,15 +127,27 @@ stargazer(reg1,reg2,reg3,reg4,reg5,reg6,se=starprep(reg1,reg2,reg3,reg4,reg5,reg
 
 (see Table 6 below)
 
-## 8. Assess the balance in land area (totalland) of the treated and control units in timet= 0.Focus on the substantive difference, not the p-value. Is there are any evidence of imbalance? Would this create a risk of bias for our difference-in-differences analysis?
+## 8. Assess the balance in land area (totalland) of the treated and control units in time t= 0.Focus on the substantive difference, not the p-value. Is there are any evidence of imbalance? Would this create a risk of bias for our difference-in-differences analysis?
+
+Control units have, on average, 153.52 in land area than treated units. Larger areas might be harder to administer and require a different bureaucratic structure, so the impact of abolishing the council on efficiency can be different.
 
 ```{r,echo=FALSE, warning=F, message=F,results='asis'}
-
+data %>%
+  filter(time == 0) %>%
+  group_by(treatment) %>%
+  summarise(mean = mean(totalland,na.rm = T))%>%
+  ungroup()%>%
+  arrange(desc(treatment)) %>%
+  mutate(difference = mean - dplyr::lag(mean)) %>%
+ kable(digits = 3,caption = "Balance between treated and control in land area in t=0")
 
 ```
 
 ## 9. Difference-in-differences methodology cannot protect us against time-varying confounders.Provide an example of an omitted (confounding) variable that might create bias in our results.
 
-## 10. One way of testing for the presence of time-varying confounders is to check that there are parallel pre-treatment trendsin the outcomes for treated and control units. Using the second dataset,Vietnam0608.csv, and your main difference-in-differences regression, assess if treated units had a different trend to control units before treatment, i.e. between 2006 and 2008, foreach of the 6 outcome indices. This should replicate Panel 2 of Table 3 in Malesky et al.
+The gain in the efficiency could have been driven by an increase in the economy performance, for example.
+
+
+## 10. One way of testing for the presence of time-varying confounders is to check that there are parallel pre-treatment trends in the outcomes for treated and control units. Using the second dataset,Vietnam0608.csv, and your main difference-in-differences regression, assess if treated units had a different trend to control units before treatment, i.e. between 2006 and 2008, foreach of the 6 outcome indices. This should replicate Panel 2 of Table 3 in Malesky et al.
 
 ## 11. Create a Difference-in-differences chart showing the average Infrastructure Index outcomeby treatment group between 2008 and 2010. Compare this to the same chart between 2006and 2008.  What do these charts suggest about the validity of our difference-in-differences methodology?
