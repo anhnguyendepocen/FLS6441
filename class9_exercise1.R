@@ -83,6 +83,8 @@ data %>%
   lm(yobs ~ D + age + gender + religion, data=.) %>%
   summary()
 
+#religion is a collider 
+
 #18 
 
 data %>%
