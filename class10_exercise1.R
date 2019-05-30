@@ -1,4 +1,10 @@
 library(tidyverse)
+#install.packages("MatchIt")
+library(MatchIt)
+#install.packages("optmatch")
+library(optmatch)
+#install.packages("rgenoud")
+library(rgenoud)
 
 #1 to 4 - generating fake data
 data <- data.frame(age=rnorm(100,40,7)) %>%
@@ -37,3 +43,41 @@ match$yobs[1] - match$yobs[2]
  
 
 #8 
+?matchit
+
+match_pack <- matchit(D ~gender + education,data = data)
+summary(match_pack)
+#48 units were matched and 4 were discarded. 
+
+data2 <- match.data(match_pack)
+
+#9
+data2 %>%
+  t.test(yobs~D,data=.)
+#the difference is similar to the estimated in the naive regression
+
+#10
+summary(match_pack)
+#the balance on education is worse
+
+#11
+match_pack2 <- matchit(D ~gender + education,data = data,method = "exact")
+summary(match_pack2)
+
+match.data(match_pack2)%>%
+  t.test(yobs~D,data=.)
+
+#12
+match_pack3 <- matchit(D ~ gender + education,data = data,method = "exact",caliper=1)
+summary(match_pack3)
+
+match.data(match_pack3)%>%
+  t.test(yobs~D,data=.)
+
+#13
+
+match_pack4 <- matchit(D ~ gender + education,data = data,method = "genetic",caliper=0.1)
+summary(match_pack4)
+
+match.data(match_pack4)%>%
+  t.test(yobs~D,data=.)
