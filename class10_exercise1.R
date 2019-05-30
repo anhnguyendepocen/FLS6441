@@ -5,6 +5,9 @@ library(MatchIt)
 library(optmatch)
 #install.packages("rgenoud")
 library(rgenoud)
+#install.packages("combinat")
+#install.packages("cem",repos="http://r.iq.harvard.edu", type="source") 
+library(cem)
 
 #1 to 4 - generating fake data
 data <- data.frame(age=rnorm(100,40,7)) %>%
@@ -81,3 +84,6 @@ summary(match_pack4)
 
 match.data(match_pack4)%>%
   t.test(yobs~D,data=.)
+
+#14 
+?cem
