@@ -34,6 +34,6 @@ match$education[1] - match$education[2] # 1 level of education difference
 match$yobs[1] - match$yobs[2]
 #there's a difference of 10 between treated and control, twice the value we have determined. 
 #this is because we usually get the average treatment effect and don't assume all units will have the same effect. 
-
+ 
 
 #8 
