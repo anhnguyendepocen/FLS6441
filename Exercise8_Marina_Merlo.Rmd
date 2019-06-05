@@ -40,20 +40,54 @@ data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_10/Repl
 
 ## 1. What is treatment? What is control? What is the outcome?
 
-## 2. Why do Boas and Hidalgo not use an experiment or natural experiment to estimate theeffect of possessing a radio licence?
+The treatment is controling a community radio, the control is to own none. The outcome is the vote share in the next election and the probability of winning. 
 
-## 3.  Conduct and interpret a basic linear regression of the outcome on treatment with nocontrols.
+## 2. Why do Boas and Hidalgo not use an experiment or natural experiment to estimate the effect of possessing a radio licence?
 
-## 4. One potential confounding variable is gender (this could affect the chances of an applicationbeing approved if there is bias in the Ministry, and the candidate’s vote share if there is biasamong voters). Is there balance across control and treatment groups on themalevariable?
+Because the treatment, the radio license, isn't randomly assigned. The treatment is very likely to be part of the incumbent advantage, so their potential outcomes (winning and vote share) are already higher.
 
-## 5. One way of controlling for gender is to add it as a control variable to your regression in Q3.Interpret the result.
+## 3.  Conduct and interpret a basic linear regression of the outcome on treatment with no controls.
+
+In this regression, we can say that owning an radio station increases the vote share in 0.45% in the next election. 
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+data %>%
+  lm(pctVV ~ treat,
+                     data = .)%>%
+  stargazer(header=F,no.space = T,font.size = "small")
+
+```
+
+
+## 4. One potential confounding variable is gender (this could affect the chances of an application being approved if there is bias in the Ministry, and the candidate’s vote share if there is bias among voters). Is there balance across control and treatment groups on the male variable? 
+
+There are more males in the treated group - this difference is statistically significant at 5% level. This means our results in the basic linear regression is biased.
+
+```{r,echo=FALSE, warning=F, message=F}
+data %>%
+  t.test(treat~male,data=.)
+
+```
+
+## 5. One way of controlling for gender is to add it as a control variable to your regression in Q3.Interpret the result. 
+
+When adding the gender variable, the treatment effect is slightly reduced, but there still might be bias in other variables. 
+
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+data %>%
+  lm(pctVV ~ treat + male,
+                     data = .)%>%
+  stargazer(header=F,no.space = T,font.size = "small")
+
+```
 
 ##6. An alternative approach is to use matching. Let’s try to do one-to-one exact matching ongendermanually. There are 311 treated units but 1144 control units in your data, so one-to-one matching meansthrowing away 833 control units.
-(a) Split your data into four different sdatasets: treated males, treated females, control males and controlfemales;
-(b) How many treated males do you have? Reduce your dataset of control males so you have only the samenumber as the number of treated males - since they are exactly matched on gender it doesn’t matter whichyou pick so choose which ones to keep/drop randomly;
-(c) Do the same for control females - reduce the number of control females to the same as the number oftreated females;
-(d) Join your four datasets back together to make one dataset (this will be smaller than the original datasetas we threw some data away);
-(e) Check for balance in gender on the new dataset - it should be perfectly balanced, right?
+*(a) Split your data into four different sdatasets: treated males, treated females, control males and controlfemales;*
+*(b) How many treated males do you have? Reduce your dataset of control males so you have only the same number as the number of treated males - since they are exactly matched on gender it doesn’t matter whichyou pick so choose which ones to keep/drop randomly;*
+*(c) Do the same for control females - reduce the number of control females to the same as the number oftreated females;*
+*(d) Join your four datasets back together to make one dataset (this will be smaller than the original datasetas we threw some data away);*
+*(e) Check for balance in gender on the new dataset - it should be perfectly balanced, right?*
 
 ##7. Using the matched dataset from Q6, conduct two analyses of the difference in outcomes between treated and control groups. One using a difference-in-means t-test and one using asimple linear regression. Interpret the results.
 
