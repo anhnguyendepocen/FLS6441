@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r, echo=FALSE, warning=F, message=F}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=80),tidy=TRUE)
 library(tidyverse)
 library(ggplot2)
 library(knitr)
@@ -153,26 +153,70 @@ datamatch %>%
 The matching using nearest neighbour method got us 622 units matched, removing 833 that couldn't be matched. This number was limited to our treated units in the full dataset - each treated variable is matched to a single control unit.
 The t.test for the full dataset shows we had an imbalance in the total votes variable significant at 5% level. The same test with the trimmed data now shows treated and control groups are balanced. 
 
-```{r,echo=FALSE, warning=F, message=F}
+```{r,echo=TRUE, warning=F, message=F}
 
 match1 <- matchit(treat ~ log.valid.votes, data = data, method = "nearest")
-summary(match1)
 
 datamatchit1 <- match.data(match1)
-
+```
+```{r,echo=F, warning=F, message=F}
 data %>%
 t.test(log.valid.votes~treat,data=.)
 
 datamatchit1 %>%
 t.test(log.valid.votes~treat,data=.)
+```
+
+## 9. Let’s see which units were dropped by our matching method in Q8. For the full (unmatched) dataset, create a graph of the size of the electorate against the outcome variable. Colour the points according to treatment status. Make this layer semi-transparent if you can. Finally,add another layer to your graph showing the same variables for the matched data. What does this graph tell you about which units were matched?
+
+The graph shows us that all the treated units were matched, including the ones with higher values of the outcome variable without any nearby control units. 
+
+```{r echo=F, message=F, warning=F,out.width = '55%',fig.align='center'}
+ggplot(data=data,aes(x=pctVV,y=log.valid.votes)) +
+  geom_point(aes(alpha=0.99,color=as.factor(treat))) +
+  theme_minimal()+  
+  geom_point(data=datamatchit1,aes(x=pctVV,y=log.valid.votes))
+
+```
+## 10. Using the matched dataset from Q8, conduct two analyses of the difference in outcomes between treated and control groups. One using a difference-in-means t-test and one using a simple linear regression. Interpret the results.
+
+With the full dataset, we would conclude that the treatment is significant at 1% level, meaning that candidates with a radio community have, on average, 2.74 in vote share agains 2.29 of the candidates without a radio station. However, this effect disappears with the matched data. 
+
+```{r,echo=FALSE, warning=F, message=F}
+data %>%
+t.test(pctVV~treat,data=.)
+
+datamatchit1 %>%
+t.test(pctVV~treat,data=.)
 
 ```
 
-## 9. Let’s see which units were dropped by our matching method in Q8. For the full (unmatched)dataset, create a graph of the size of the electorate against the outcome variable. Colour thepoints according to treatment status. Make this layer semi-transparent if you can. Finally,add another layer to your graph showing the same variables for thematcheddata. What does this graph tell you about which units were matched?
+## 11. Now let’s include all of the matching variables that Boas and Hidalgo use, and use nearest neighbour matching in matchit to construct a matched dataset.  Use the list of matching variables provided below to conduct nearest neighbour matching.“occBlue.collar, “occEducation, “occGovernment, “occMedia, “occNone, “occOther, “occPolitician, “oc-cWhite.collar, “lat, “long, “ran.prior, “incumbent, “log.valid.votes, “party.prior.pctVV, “prior.pctVV,“elec.year,   “match.partyPCB,   “match.partyPC.do.B,   “match.partyPDT,   “match.partyPFL,“match.partyPL,  “match.partyPMDB,  “match.partyPMN,  “match.partyPP,  “match.partyPPS,“match.partyPSB, “match.partyPSC, “match.partyPSDB, “match.partyPSDC, “match.partyPSL,“match.partyPT, “match.partyPTB, “match.partyPV, “uf.rs, “uf.sp, “yob, “eduMore.than.Primary..Less.than.Superior,“eduSome.Superior.or.More, “log.total.assets, “pt_pres_1998, “psdb_2000, “hdi_2000, “income_2000,“log.num.apps
 
-## 10. Using the matched dataset from Q8, conduct two analyses of the difference in outcomesbetween treated and control groups. One using a difference-in-means t-test and one using asimple linear regression. Interpret the results.
+```{r,echo=T, warning=F, message=F}
 
-## 11. Now let’s include all of the matching variables that Boas and Hidalgo use, and use nearestneighbour matching inmatchitto construct a matched dataset.  Use the list of matchingvariables provided below to conduct nearest neighbour matching.“occBlue.collar”, “occEducation”, “occGovernment”, “occMedia”, “occNone”, “occOther”, “occPolitician”, “oc-cWhite.collar”, “lat”, “long”, “ran.prior”, “incumbent”, “log.valid.votes”, “party.prior.pctVV”, “prior.pctVV”,“elec.year”,   “match.partyPCB”,   “match.partyPC.do.B”,   “match.partyPDT”,   “match.partyPFL”,“match.partyPL”,  “match.partyPMDB”,  “match.partyPMN”,  “match.partyPP”,  “match.partyPPS”,“match.partyPSB”, “match.partyPSC”, “match.partyPSDB”, “match.partyPSDC”, “match.partyPSL”,“match.partyPT”, “match.partyPTB”, “match.partyPV”, “uf.rs”, “uf.sp”, “yob”, “eduMore.than.Primary..Less.than.Superior”,“eduSome.Superior.or.More”, “log.total.assets”, “pt_pres_1998”, “psdb_2000”, “hdi_2000”, “income_2000”,“log.num.apps”
+match2 <- matchit(treat ~  occBlue.collar+  occEducation+  
+                    occGovernment+  occMedia+  occNone+  occOther+  
+                    occPolitician+  occWhite.collar+  lat+  long+  
+                    ran.prior+  incumbent+  log.valid.votes+  
+                    party.prior.pctVV+  prior.pctVV+ elec.year+   
+                    match.partyPCB+   match.partyPC.do.B+   
+                    match.partyPDT+   match.partyPFL+match.partyPL+  
+                    match.partyPMDB+  match.partyPMN+  match.partyPP+ 
+                    match.partyPPS+match.partyPSB+ match.partyPSC+ 
+                    match.partyPSDB+ match.partyPSDC+ match.partyPSL+
+                    match.partyPT+ match.partyPTB+ match.partyPV+ 
+                    uf.rs+ uf.sp+ yob+
+                    eduMore.than.Primary..Less.than.Superior+
+                    eduSome.Superior.or.More+ log.total.assets+ 
+                    pt_pres_1998+ psdb_2000+ hdi_2000+ 
+                    income_2000+log.num.apps, data = data, method = "nearest")
+
+datamatchit2 <- match.data(match2)
+
+
+```
+
 
 ## 12. Using your matched dataset from Q11, conduct a simple linear regression of the outcomeon treatment. Interpret the results and compare them to the result in the first column ofTable 4 in Boas and Hidalgo (2011) (it probably won’t be the same, see the next questions).
 
