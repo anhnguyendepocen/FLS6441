@@ -82,12 +82,51 @@ data %>%
 
 ```
 
-##6. An alternative approach is to use matching. Let’s try to do one-to-one exact matching ongendermanually. There are 311 treated units but 1144 control units in your data, so one-to-one matching meansthrowing away 833 control units.
-*(a) Split your data into four different sdatasets: treated males, treated females, control males and controlfemales;*
-*(b) How many treated males do you have? Reduce your dataset of control males so you have only the same number as the number of treated males - since they are exactly matched on gender it doesn’t matter whichyou pick so choose which ones to keep/drop randomly;*
-*(c) Do the same for control females - reduce the number of control females to the same as the number oftreated females;*
+##6. An alternative approach is to use matching. Let’s try to do one-to-one exact matching on gender manually. There are 311 treated units but 1144 control units in your data, so one-to-one matching means throwing away 833 control units.
+*(a) Split your data into four differents datasets: treated males, treated females, control males and control females;*
+
+```{r,echo=TRUE, warning=F, message=F}
+t_male <- data %>%
+  filter(treat == 1 & male == 1)
+c_male <- data %>%
+  filter(treat == 0 & male == 1)
+t_female <- data %>%
+  filter(treat == 1 & male == 0)
+c_female <- data %>%
+  filter(treat == 0 & male == 0)
+
+```
+
+*(b) How many treated males do you have? Reduce your dataset of control males so you have only the same number as the number of treated males - since they are exactly matched on gender it doesn’t matter which you pick so choose which ones to keep/drop randomly;*
+
+```{r,echo=TRUE, warning=F, message=F}
+
+c_male <- c_male %>%
+  sample_n(size = nrow(t_male))
+
+```
+*(c) Do the same for control females - reduce the number of control females to the same as the number of treated females;*
+
+```{r,echo=TRUE, warning=F, message=F}
+
+c_female <- c_female %>%
+  sample_n(size = nrow(t_female))
+
+```
 *(d) Join your four datasets back together to make one dataset (this will be smaller than the original datasetas we threw some data away);*
+
+```{r,echo=TRUE, warning=F, message=F}
+
+datamatch <- rbind(c_female,t_female,c_male,t_male)
+
+```
 *(e) Check for balance in gender on the new dataset - it should be perfectly balanced, right?*
+
+```{r,echo=FALSE, warning=F, message=F}
+datamatch %>%
+  t.test(treat~male,data=.)
+
+```
 
 ##7. Using the matched dataset from Q6, conduct two analyses of the difference in outcomes between treated and control groups. One using a difference-in-means t-test and one using asimple linear regression. Interpret the results.
 
