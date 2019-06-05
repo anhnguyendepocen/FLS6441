@@ -1,0 +1,74 @@
+---
+title: "Replication 8 - Matching"
+author: "Marina Merlo"
+date: "5 de junho de 2019"
+output: pdf_document
+---
+
+```{r, echo=FALSE, warning=F, message=F}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+library(data.table)
+library(effects)
+library(MASS)
+library(Zelig)
+library(ZeligChoice)
+library(estimatr)
+library(stargazer)
+library(float)
+library(pander)
+library(texreg)
+library(plm)
+library(RCurl)
+library(gdata) 
+library(zoo)
+library(gridExtra)
+#install.packages("MatchIt")
+library(MatchIt)
+#install.packages("optmatch")
+library(optmatch)
+#install.packages("rgenoud")
+library(rgenoud)
+#install.packages("combinat")
+#install.packages("cem",repos="http://r.iq.harvard.edu", type="source") 
+library(cem)
+
+data <- fread("https://jonnyphillips.github.io/Methods_III/Classes/Class_10/Replication/Boas_Hidalgo.csv")
+```
+
+## 1. What is treatment? What is control? What is the outcome?
+
+## 2. Why do Boas and Hidalgo not use an experiment or natural experiment to estimate theeffect of possessing a radio licence?
+
+## 3.  Conduct and interpret a basic linear regression of the outcome on treatment with nocontrols.
+
+## 4. One potential confounding variable is gender (this could affect the chances of an applicationbeing approved if there is bias in the Ministry, and the candidate’s vote share if there is biasamong voters). Is there balance across control and treatment groups on themalevariable?
+
+## 5. One way of controlling for gender is to add it as a control variable to your regression in Q3.Interpret the result.
+
+##6. An alternative approach is to use matching. Let’s try to do one-to-one exact matching ongendermanually. There are 311 treated units but 1144 control units in your data, so one-to-one matching meansthrowing away 833 control units.
+(a) Split your data into four different sdatasets: treated males, treated females, control males and controlfemales;
+(b) How many treated males do you have? Reduce your dataset of control males so you have only the samenumber as the number of treated males - since they are exactly matched on gender it doesn’t matter whichyou pick so choose which ones to keep/drop randomly;
+(c) Do the same for control females - reduce the number of control females to the same as the number oftreated females;
+(d) Join your four datasets back together to make one dataset (this will be smaller than the original datasetas we threw some data away);
+(e) Check for balance in gender on the new dataset - it should be perfectly balanced, right?
+
+##7. Using the matched dataset from Q6, conduct two analyses of the difference in outcomes between treated and control groups. One using a difference-in-means t-test and one using asimple linear regression. Interpret the results.
+
+##8. To match on continuous or multiple variables it’s easier to usematchit. Return to youroriginal full dataset and, using nearest neighbour matching, match on the size of the electorate(log.valid.votes). How many units are matched? Why this number? Conduct a simple balance t-test on the size of the electorate for the full dataset and for your matched dataset (you can recover it withmatch.data(output_of_matchit)). How does balance change after matching?
+
+## 9. Let’s see which units were dropped by our matching method in Q8. For the full (unmatched)dataset, create a graph of the size of the electorate against the outcome variable. Colour thepoints according to treatment status. Make this layer semi-transparent if you can. Finally,add another layer to your graph showing the same variables for thematcheddata. What does this graph tell you about which units were matched?
+
+## 10. Using the matched dataset from Q8, conduct two analyses of the difference in outcomesbetween treated and control groups. One using a difference-in-means t-test and one using asimple linear regression. Interpret the results.
+
+## 11. Now let’s include all of the matching variables that Boas and Hidalgo use, and use nearestneighbour matching inmatchitto construct a matched dataset.  Use the list of matchingvariables provided below to conduct nearest neighbour matching.“occBlue.collar”, “occEducation”, “occGovernment”, “occMedia”, “occNone”, “occOther”, “occPolitician”, “oc-cWhite.collar”, “lat”, “long”, “ran.prior”, “incumbent”, “log.valid.votes”, “party.prior.pctVV”, “prior.pctVV”,“elec.year”,   “match.partyPCB”,   “match.partyPC.do.B”,   “match.partyPDT”,   “match.partyPFL”,“match.partyPL”,  “match.partyPMDB”,  “match.partyPMN”,  “match.partyPP”,  “match.partyPPS”,“match.partyPSB”, “match.partyPSC”, “match.partyPSDB”, “match.partyPSDC”, “match.partyPSL”,“match.partyPT”, “match.partyPTB”, “match.partyPV”, “uf.rs”, “uf.sp”, “yob”, “eduMore.than.Primary..Less.than.Superior”,“eduSome.Superior.or.More”, “log.total.assets”, “pt_pres_1998”, “psdb_2000”, “hdi_2000”, “income_2000”,“log.num.apps”
+
+## 12. Using your matched dataset from Q11, conduct a simple linear regression of the outcomeon treatment. Interpret the results and compare them to the result in the first column ofTable 4 in Boas and Hidalgo (2011) (it probably won’t be the same, see the next questions).
+
+## 13. With lots of variables it’s impossible to get perfect balance on all variables, there are justtoo many dimensions and too few units. One option to control for ‘residual confounding’ is toinclude the matching variables as control variables in our analysis regression. How does thischange your estimated treatment effect?
+
+## 14. One risk with nearest-neighbour matching is that the control unit can still be far awayfrom the treated unit if there are no good matches. Re-run the matching process from Q11but with a caliper of 0.01 standard deviations, and then re-run the regression from Q12 (nocontrols). How does the number of units and the result change?
+
+## 15. Another problem with nearest neighbour matching is that it is ‘greedy’ - the first matchesmight make it harder to match well later. Boas and Hidalgo use genetic matching, which isa complex automated process to try and get the best ‘overall’ matches for the full dataset.Run genetic matching with the same variables and then run your regression (with no controls)again. Note:Genetic matching might take 10-20 minutes.
