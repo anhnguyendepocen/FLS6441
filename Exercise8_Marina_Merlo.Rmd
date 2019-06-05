@@ -128,9 +128,45 @@ datamatch %>%
 
 ```
 
-##7. Using the matched dataset from Q6, conduct two analyses of the difference in outcomes between treated and control groups. One using a difference-in-means t-test and one using asimple linear regression. Interpret the results.
+##7. Using the matched dataset from Q6, conduct two analyses of the difference in outcomes between treated and control groups. One using a difference-in-means t-test and one using a simple linear regression. Interpret the results.
 
-##8. To match on continuous or multiple variables it’s easier to usematchit. Return to youroriginal full dataset and, using nearest neighbour matching, match on the size of the electorate(log.valid.votes). How many units are matched? Why this number? Conduct a simple balance t-test on the size of the electorate for the full dataset and for your matched dataset (you can recover it withmatch.data(output_of_matchit)). How does balance change after matching?
+The t-test shows a difference between treated and control groups in the outcome variable significant at 5% level. The regressions tells the same story, with a positive and significant effect of 0.405% in the vote share for the candidates controlling a radio community - this coefficient, however, is smaller than the one estimated with the full data, meaning that some of the previous effect was due to inbalance on gender.
+
+```{r,echo=FALSE, warning=F, message=F}
+datamatch %>%
+  t.test(pctVV~treat,data=.)
+
+```
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+datamatch %>%
+  lm(pctVV ~ treat,
+                     data = .)%>%
+  stargazer(header=F,no.space = T,font.size = "small")
+
+
+```
+
+
+
+##8. To match on continuous or multiple variables it’s easier to use matchit. Return to your original full dataset and, using nearest neighbour matching, match on the size of the electorate (log.valid.votes). How many units are matched? Why this number? Conduct a simple balance t-test on the size of the electorate for the full dataset and for your matched dataset (you can recover it withmatch.data(output_of_matchit)). How does balance change after matching? 
+
+The matching using nearest neighbour method got us 622 units matched, removing 833 that couldn't be matched. This number was limited to our treated units in the full dataset - each treated variable is matched to a single control unit.
+The t.test for the full dataset shows we had an imbalance in the total votes variable significant at 5% level. The same test with the trimmed data now shows treated and control groups are balanced. 
+
+```{r,echo=FALSE, warning=F, message=F}
+
+match1 <- matchit(treat ~ log.valid.votes, data = data, method = "nearest")
+summary(match1)
+
+datamatchit1 <- match.data(match1)
+
+data %>%
+t.test(log.valid.votes~treat,data=.)
+
+datamatchit1 %>%
+t.test(log.valid.votes~treat,data=.)
+
+```
 
 ## 9. Let’s see which units were dropped by our matching method in Q8. For the full (unmatched)dataset, create a graph of the size of the electorate against the outcome variable. Colour thepoints according to treatment status. Make this layer semi-transparent if you can. Finally,add another layer to your graph showing the same variables for thematcheddata. What does this graph tell you about which units were matched?
 
