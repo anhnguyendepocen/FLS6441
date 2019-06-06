@@ -218,10 +218,116 @@ datamatchit2 <- match.data(match2)
 ```
 
 
-## 12. Using your matched dataset from Q11, conduct a simple linear regression of the outcomeon treatment. Interpret the results and compare them to the result in the first column ofTable 4 in Boas and Hidalgo (2011) (it probably won’t be the same, see the next questions).
+## 12. Using your matched dataset from Q11, conduct a simple linear regression of the outcome on treatment. Interpret the results and compare them to the result in the first column of Table 4 in Boas and Hidalgo (2011) (it probably won’t be the same, see the next questions).
 
-## 13. With lots of variables it’s impossible to get perfect balance on all variables, there are justtoo many dimensions and too few units. One option to control for ‘residual confounding’ is toinclude the matching variables as control variables in our analysis regression. How does thischange your estimated treatment effect?
+The results here a different - we couldn't find a significant effect of owning a radio community in the percentage of votes, while the authors found a positive effect of 0.39 and significant at 5% level. 
 
-## 14. One risk with nearest-neighbour matching is that the control unit can still be far awayfrom the treated unit if there are no good matches. Re-run the matching process from Q11but with a caliper of 0.01 standard deviations, and then re-run the regression from Q12 (nocontrols). How does the number of units and the result change?
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+datamatchit2 %>%
+  lm(pctVV ~ treat,
+                     data = .)%>%
+  stargazer(header=F,no.space = T,font.size = "small")
 
-## 15. Another problem with nearest neighbour matching is that it is ‘greedy’ - the first matchesmight make it harder to match well later. Boas and Hidalgo use genetic matching, which isa complex automated process to try and get the best ‘overall’ matches for the full dataset.Run genetic matching with the same variables and then run your regression (with no controls)again. Note:Genetic matching might take 10-20 minutes.
+
+```
+
+
+## 13. With lots of variables it’s impossible to get perfect balance on all variables, there are just too many dimensions and too few units. One option to control for ‘residual confounding’ is to include the matching variables as control variables in our analysis regression. How does this change your estimated treatment effect?
+
+The estimated treatment effect remains statistically insignificant, although now it's higher than the regression in Table 4. 
+
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+datamatchit2 %>%
+  lm(pctVV ~ treat + occBlue.collar+  occEducation+  
+                    occGovernment+  occMedia+  occNone+  occOther+  
+                    occPolitician+  occWhite.collar+  lat+  long+  
+                    ran.prior+  incumbent+  log.valid.votes+  
+                    party.prior.pctVV+  prior.pctVV+ elec.year+   
+                    match.partyPCB+   match.partyPC.do.B+   
+                    match.partyPDT+   match.partyPFL+match.partyPL+  
+                    match.partyPMDB+  match.partyPMN+  match.partyPP+ 
+                    match.partyPPS+match.partyPSB+ match.partyPSC+ 
+                    match.partyPSDB+ match.partyPSDC+ match.partyPSL+
+                    match.partyPT+ match.partyPTB+ match.partyPV+ 
+                    uf.rs+ uf.sp+ yob+
+                    eduMore.than.Primary..Less.than.Superior+
+                    eduSome.Superior.or.More+ log.total.assets+ 
+                    pt_pres_1998+ psdb_2000+ hdi_2000+ 
+                    income_2000+log.num.apps,
+                     data = .)%>%
+  stargazer(header=F,no.space = T,font.size = "small",keep = c("treat","Constant"))
+
+
+```
+
+
+## 14. One risk with nearest-neighbour matching is that the control unit can still be far away from the treated unit if there are no good matches. Re-run the matching process from Q11 but with a caliper of 0.01 standard deviations, and then re-run the regression from Q12 (nocontrols). How does the number of units and the result change?
+
+Our dataset is even smaller when the caliper is set at 0.01 - now we have 490 units. The main change compared to Table 4 is a higher S.E. for the treatment estimate, but its value is almost the same. 
+
+```{r,echo=T, warning=F, message=F}
+
+match3 <- matchit(treat ~  occBlue.collar+  occEducation+  
+                    occGovernment+  occMedia+  occNone+  occOther+  
+                    occPolitician+  occWhite.collar+  lat+  long+  
+                    ran.prior+  incumbent+  log.valid.votes+  
+                    party.prior.pctVV+  prior.pctVV+ elec.year+   
+                    match.partyPCB+   match.partyPC.do.B+   
+                    match.partyPDT+   match.partyPFL+match.partyPL+  
+                    match.partyPMDB+  match.partyPMN+  match.partyPP+ 
+                    match.partyPPS+match.partyPSB+ match.partyPSC+ 
+                    match.partyPSDB+ match.partyPSDC+ match.partyPSL+
+                    match.partyPT+ match.partyPTB+ match.partyPV+ 
+                    uf.rs+ uf.sp+ yob+
+                    eduMore.than.Primary..Less.than.Superior+
+                    eduSome.Superior.or.More+ log.total.assets+ 
+                    pt_pres_1998+ psdb_2000+ hdi_2000+ 
+                    income_2000+log.num.apps, data = data, method = "nearest",
+                  caliper=0.01)
+
+datamatchit3 <- match.data(match3)
+```
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+datamatchit3 %>%
+  lm(pctVV ~ treat,
+                     data = .)%>%
+  stargazer(header=F,no.space = T,font.size = "small")
+
+
+```
+
+## 15. Another problem with nearest neighbour matching is that it is ‘greedy’ - the first matches might make it harder to match well later. Boas and Hidalgo use genetic matching, which is a complex automated process to try and get the best ‘overall’ matches for the full dataset.Run genetic matching with the same variables and then run your regression (with no controls)again. Note:Genetic matching might take 10-20 minutes.
+
+Using the matched units selected with the genetic method, our regression results are closer to those found by the authors - a positive effect of 0.42 and significant at 5% level for the owner of the radio station. 
+*[couldn't find how to remove the output of the matching estimation, sorry for the extra pages]*
+
+```{r,echo=F, warning=F, message=F}
+
+match4 <- matchit(treat ~  occBlue.collar+  occEducation+  
+                    occGovernment+  occMedia+  occNone+  occOther+  
+                    occPolitician+  occWhite.collar+  lat+  long+  
+                    ran.prior+  incumbent+  log.valid.votes+  
+                    party.prior.pctVV+  prior.pctVV+ elec.year+   
+                    match.partyPCB+   match.partyPC.do.B+   
+                    match.partyPDT+   match.partyPFL+match.partyPL+  
+                    match.partyPMDB+  match.partyPMN+  match.partyPP+ 
+                    match.partyPPS+match.partyPSB+ match.partyPSC+ 
+                    match.partyPSDB+ match.partyPSDC+ match.partyPSL+
+                    match.partyPT+ match.partyPTB+ match.partyPV+ 
+                    uf.rs+ uf.sp+ yob+
+                    eduMore.than.Primary..Less.than.Superior+
+                    eduSome.Superior.or.More+ log.total.assets+ 
+                    pt_pres_1998+ psdb_2000+ hdi_2000+ 
+                    income_2000+log.num.apps, data = data, method = "genetic",
+                  verbose=F)
+
+datamatchit4 <- match.data(match4)
+```
+```{r,echo=FALSE, warning=F, message=F,results='asis'}
+datamatchit4 %>%
+  lm(pctVV ~ treat,
+                     data = .)%>%
+  stargazer(header=F,no.space = T,font.size = "small")
+
+
+```
